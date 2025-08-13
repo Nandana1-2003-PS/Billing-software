@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Invoice Sent</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .buttons {
+            margin-top: 2rem;
+        }
+
+        button {
+            padding: 10px 20px;
+            margin: 0 10px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <h2>✅ Invoice Saved & Sent</h2>
+    <p>Click below to print the invoice or go back to billing.</p>
+
+    <div class="buttons">
+        <button onclick="printInvoice()">🖨️ Print Invoice</button>
+        <button onclick="cancelInvoice()">❌ Cancel</button>
+    </div>
+
+    <iframe id="pdfFrame" src="{% url 'generate_invoice' bill.id %}" style="display:none;"></iframe>
+
+    <script>
+        const sendWhatsapp = "{{ send_whatsapp|yesno:'true,false' }}" === "true";
+        const whatsappUrl = "{{ whatsapp_url|escapejs }}";
+
+        if (sendWhatsapp && whatsappUrl) {
+            window.open(whatsappUrl, "_blank");
+        }
+
+        function printInvoice() {
+            const iframe = document.getElementById("pdfFrame");
+            iframe.style.display = "block";
+            iframe.onload = function () {
+                iframe.contentWindow.print();
+                setTimeout(() => {
+                    window.location.href = "{% url 'create_bill' %}?status=success";
+                }, 2000);
+            };
+        }
+
+        function cancelInvoice() {
+            window.location.href = "{% url 'create_bill' %}?status=success";
+        }
+    </script>
+</body>
+
+</html>

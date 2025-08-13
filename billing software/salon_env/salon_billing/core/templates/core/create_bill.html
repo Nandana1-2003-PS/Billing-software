@@ -1,0 +1,304 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Create Bill{% endblock %}
+
+{% block content %}
+<style>
+    :root {
+        --primary: black;
+        --border: #ccc;
+        --hover: #f9f9f9;
+    }
+
+    .form-container {
+        background: #fff;
+        padding: 2rem;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        max-width: 800px;
+        width: 100%;
+        margin: auto;
+        box-shadow: 0 0 10px rgba(0,0,0,0.05);
+    }
+
+    .form-container h2 {
+        text-align: center;
+        color: var(--primary);
+        margin-bottom: 1.5rem;
+    }
+
+    label {
+        font-weight: 500;
+    }
+
+    .btn-black {
+        background-color: var(--primary);
+        color: white;
+        font-weight: bold;
+        width: 100%;
+    }
+
+    .btn-black:hover {
+        background-color: #000;
+    }
+
+    .list-group-item {
+        cursor: pointer;
+    }
+
+    #suggestions {
+        position: absolute;
+        z-index: 1000;
+        width: 100%;
+    }
+
+</style>
+
+<div class="form-container">
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <h2>Create New Bill</h2>
+
+    <form method="post">
+        {% csrf_token %}
+
+        <!-- Customer Name -->
+        <div class="mb-3 position-relative">
+            <label>Customer Name</label>
+            <input required type="text" id="customer_name" name="customer_name" class="form-control" oninput="showSuggestions()" autocomplete="off">
+            <div id="suggestions" class="list-group"></div>
+        </div>
+
+        <div class="mb-3">
+            <label>Phone</label>
+            <input required type="text" id="customer_phone" name="customer_phone" class="form-control">
+        </div>
+
+        <div class="mb-3">
+            <label>Email</label>
+            <input type="email" id="customer_email" name="customer_email" class="form-control">
+        </div>
+
+        <div class="mb-3">
+            <label>Address</label>
+            <input type="text" id="customer_address" name="customer_address" class="form-control">
+        </div>
+
+        <div class="mb-3">
+            <label>Date of Birth</label>
+            <input type="date" id="customer_dob" name="customer_dob" class="form-control">
+        </div>
+
+        <div class="mb-3">
+            <label>Gender</label>
+            <select required id="gender" name="customer_gender" class="form-select">
+                <option value="">-- Gender --</option>
+                <option value="M">Male</option>
+                <option value="F">Female</option>
+                <option value="O">Others</option>
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label>Select Category</label>
+            <select required id="category" class="form-select" onchange="loadServices(this.value)">
+                <option value="">-- Select Category --</option>
+                <option value="men">Men</option>
+                <option value="women">Women</option>
+                <option value="kids">Kids</option>
+            </select>
+        </div>
+
+        <!-- Service Rows -->
+        <div id="service-container">
+            <div class="row mb-3 service-row">
+                <div class="col-md-4 mb-2">
+                    <label>Service</label>
+                    <select required class="form-select service-select" name="service" onchange="updatePrice(this)">
+                        <option value="">-- Select a service --</option>
+                    </select>
+                </div>
+                <div class="col-md-4 mb-2">
+                    <label>Price</label>
+                    <input type="text" name="price" class="form-control service-price" readonly>
+                </div>
+                <div class="col-md-4 mb-2">
+                    <label>Staff</label>
+                    <select required name="staff" class="form-select">
+                        <option value="">-- Select staff --</option>
+                        {% for s in staff %}
+                        <option value="{{ s.id }}">{{ s.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <button type="button" class="btn btn-outline-secondary w-100 mb-3" onclick="addService()">+ Add Another Service</button>
+
+        <div class="mb-3">
+            <label>Discount</label>
+            <input type="text" id="discount" name="discount" class="form-control" value="0" oninput="calculateTotal()">
+        </div>
+
+        <div class="mb-3">
+            <label>Total</label>
+            <input type="text" name="total" id="total" class="form-control" readonly>
+        </div>
+
+        <button type="submit" name="action" value="save_all" class="btn btn-black">💾 Save & Print</button>
+    </form>
+</div>
+
+
+<script>
+    function calculateTotal() {
+        let total = 0;
+
+        document.querySelectorAll('.service-price').forEach(input => {
+            const value = parseFloat(input.value);
+            if (!isNaN(value)) total += value;
+        });
+
+        const discount = parseFloat(document.getElementById('discount').value);
+        if (!isNaN(discount)) total -= discount;
+
+        document.getElementById('total').value = Math.max(0, total).toFixed(2);
+    }
+
+    function addService() {
+        const original = document.querySelector('.service-row');
+        const clone = original.cloneNode(true);
+        clone.querySelector('.service-price').value = '';
+        clone.querySelector('.service-select').selectedIndex = 0;
+        original.parentElement.appendChild(clone);
+    }
+
+    function updatePrice(select) {
+        const selected = select.selectedOptions[0];
+        const priceInput = select.closest('.row').querySelector('.service-price');
+        priceInput.value = selected.dataset.price || '';
+        calculateTotal();
+    }
+
+    function loadServices(category) {
+        fetch(`/ajax/services/?category=${category}`)
+            .then(res => res.json())
+            .then(data => {
+                document.querySelectorAll('.service-select').forEach(select => {
+                    select.innerHTML = '<option value="">-- Select --</option>';
+                    data.forEach(service => {
+                        const option = document.createElement('option');
+                        option.value = service.id;
+                        option.textContent = service.name;
+                        option.dataset.price = service.price;
+                        select.appendChild(option);
+                    });
+                });
+            });
+    }
+
+    document.getElementById("customer_name").addEventListener("input", function () {
+        const query = this.value;
+        const suggestions = document.getElementById("suggestions");
+        suggestions.innerHTML = "";
+
+        if (query.length < 2) return;
+
+        fetch(`/ajax/customers/?q=${query}`)
+            .then(response => response.json())
+            .then(data => {
+                data.forEach(customer => {
+                    const div = document.createElement("div");
+                    div.classList.add("list-group-item", "list-group-item-action");
+                    div.innerText = `${customer.name} (${customer.phone})`;
+                    div.dataset.name = customer.name;
+                    div.dataset.phone = customer.phone;
+                    div.dataset.email = customer.email;
+                    div.dataset.dob= customer.dob;
+                    div.dataset.gender= customer.gender;
+
+
+                    div.onclick = function () {
+                        document.getElementById("customer_name").value = this.dataset.name;
+                        document.getElementById("customer_phone").value = this.dataset.phone;
+                        document.getElementById("customer_email").value = this.dataset.email;
+                        document.getElementById("customer_dob").value = this.dataset.dob;
+                        document.getElementById("gender").value = this.dataset.gender;
+                        
+                        suggestions.innerHTML = "";
+                    };
+
+                    suggestions.appendChild(div);
+                });
+            });
+    });
+
+    setTimeout(() => {
+        const alert = document.querySelector('.alert');
+        if (alert) {
+            alert.classList.remove('show');
+            alert.classList.add('fade');
+            setTimeout(() => alert.remove(), 500);
+        }
+    }, 2000);
+
+    function showSuggestions() {
+        const query = document.getElementById('customer_name').value.trim();
+        const suggestionBox = document.getElementById('suggestions');
+
+        if (!query) {
+            suggestionBox.innerHTML = '';
+            suggestionBox.style.display = 'none';
+            return;
+        }
+
+        fetch(`/ajax/customers/?q=${encodeURIComponent(query)}`)
+            .then(response => response.json())
+            .then(data => {
+                suggestionBox.innerHTML = '';
+                if (data.length === 0) {
+                    suggestionBox.style.display = 'none';
+                    return;
+                }
+
+                data.forEach(customer => {
+                    const div = document.createElement("div");
+                    div.classList.add("list-group-item", "list-group-item-action");
+                    div.innerText = `${customer.name} (${customer.phone})`;
+                    div.dataset.name = customer.name;
+                    div.dataset.phone = customer.phone;
+                    div.dataset.email = customer.email;
+                    div.dataset.address = customer.address;
+                    div.dataset.dob = customer.dob;
+                    div.dataset.gender = customer.gender;
+                    
+                    div.onclick = function () {
+                        document.getElementById("customer_name").value = this.dataset.name;
+                        document.getElementById("customer_phone").value = this.dataset.phone;
+                        document.getElementById("customer_email").value = this.dataset.email;
+                        document.getElementById("customer_address").value = this.dataset.address;
+                        document.getElementById("customer_dob").value = this.dataset.dob;
+                        document.getElementById("gender").value = this.dataset.gender;
+                        
+                        suggestionBox.innerHTML = "";
+                        suggestionBox.style.display = "none";
+                    };
+
+                    suggestionBox.appendChild(div);
+                });
+
+                suggestionBox.style.display = 'block';
+            });
+    }
+
+    
+</script>
+{% endblock %}

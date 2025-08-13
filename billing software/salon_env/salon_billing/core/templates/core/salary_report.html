@@ -1,0 +1,53 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Salary Report{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Salary Report</h2>
+
+    <div class="table-responsive">
+        <table class="table table-bordered table-striped table-hover align-middle">
+            <thead class="table-dark text-center">
+                <tr>
+                    <th>Staff Name</th>
+                    <th>Basic Salary</th>
+                    <th>DA (20%)</th>
+                    <th>HRA (50%)</th>
+                    <th>Special (25%)</th>
+                    <th>Bonus (44%)</th>
+                    <th>PF (12%)</th>
+                    <th>Prof Tax</th>
+                    <th>Advance</th>
+                    <th>Total Gross</th>
+                    <th>Total Deductions</th>
+                    <th>Net Salary</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for staff in staff_data %}
+                <tr>
+                    <td>{{ staff.name }}</td>
+                    <td>{{ staff.basic_salary|floatformat:2 }}</td>
+                    <td>{{ staff.da|floatformat:2 }}</td>
+                    <td>{{ staff.hra|floatformat:2 }}</td>
+                    <td>{{ staff.special_allowance|floatformat:2 }}</td>
+                    <td>{{ staff.bonus|floatformat:2 }}</td>
+                    <td>{{ staff.pf|floatformat:2 }}</td>
+                    <td>{{ staff.professional_tax|floatformat:2 }}</td>
+                    <td>{{ staff.salary_advance|floatformat:2 }}</td>
+                    <td>{{ staff.total_gross|floatformat:2 }}</td>
+                    <td>{{ staff.total_deductions|floatformat:2 }}</td>
+                    <td class="fw-bold">{{ staff.net_salary|floatformat:2 }}</td>
+
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="12" class="text-center">No staff found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,108 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+<style>
+    .edit-container {
+        max-width: 600px;
+        margin: 3rem auto;
+        padding: 2rem;
+        background: linear-gradient(145deg, #f7f7f7, #ffffff);
+        border-radius: 16px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+        font-family: 'Segoe UI', sans-serif;
+    }
+
+    .edit-container h2 {
+        text-align: center;
+        font-size: 24px;
+        margin-bottom: 2rem;
+        color: #333;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .back-link {
+        display: inline-block;
+        margin-bottom: 1.5rem;
+        color: #007BFF;
+        text-decoration: none;
+        font-weight: 500;
+        transition: color 0.2s;
+    }
+
+    .back-link:hover {
+        color: #0056b3;
+        text-decoration: underline;
+    }
+
+    form {
+        display: flex;
+        flex-direction: column;
+        gap: 1.2rem;
+    }
+
+    form input,
+    form select {
+        padding: 12px 16px;
+        font-size: 15px;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        transition: border 0.3s, box-shadow 0.3s;
+    }
+
+    form input:focus,
+    form select:focus {
+        border-color: #007BFF;
+        box-shadow: 0 0 5px rgba(0, 123, 255, 0.3);
+        outline: none;
+    }
+
+    button {
+        padding: 12px;
+        background-color: #000;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 16px;
+        cursor: pointer;
+        transition: background 0.3s;
+    }
+
+    button:hover {
+        background-color: #333;
+    }
+
+    @media (max-width: 600px) {
+        .edit-container {
+            margin: 1rem;
+            padding: 1.5rem;
+        }
+
+        .edit-container h2 {
+            font-size: 20px;
+        }
+    }
+</style>
+
+<div class="edit-container">
+    
+
+    <h2>Edit Service</h2>
+
+    <form method="post">
+        {% csrf_token %}
+        <input name="name" value="{{ service.name }}" placeholder="Service Name" required>
+        <input type="number" name="price" value="{{ service.price }}" placeholder="Service Price" required min="0" step="0.01">
+
+        <select name="category" required>
+            <option value="">Select Category</option>
+            <option value="men" {% if service.category == 'men' %}selected{% endif %}>Men</option>
+            <option value="women" {% if service.category == 'women' %}selected{% endif %}>Women</option>
+            <option value="kids" {% if service.category == 'kids' %}selected{% endif %}>Kids</option>
+        </select>
+        <button type="submit">Update Service</button>
+    </form>
+    <center><a href="{% url 'service_list' %}" class="back-link">← Back to Services</a></center>
+</div>
+{% endblock %}

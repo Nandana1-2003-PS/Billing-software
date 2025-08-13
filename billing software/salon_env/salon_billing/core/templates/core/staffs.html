@@ -1,0 +1,157 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Staff Management{% endblock %}
+
+{% block content %}
+<h1 class="text-center mb-4">Manage Staff</h1>
+
+<div class="d-flex justify-content-center">
+    <div class="card p-4 shadow-sm w-100" style="max-width: 700px;">
+        <form method="post">
+            {% csrf_token %}
+            <div class="mb-3">
+                <input name="name" placeholder="Name" class="form-control" required>
+            </div>
+            <div class="mb-3">
+                <input name="phone" placeholder="Phone" class="form-control" required>
+            </div>
+            <div class="mb-3">
+                <input name="email" placeholder="Email" class="form-control">
+            </div>
+            <div class="mb-3">
+                <input type="text" name="position" placeholder="Position" class="form-control" required>
+            </div>
+            <div class="mb-3">
+                <label for="dob" class="form-label">Date of Birth</label>
+                <input type="date" id="dob" name="dob" class="form-control" required>
+            </div>
+            <div class="mb-3">
+                <textarea name="address" placeholder="Address" class="form-control" required></textarea>
+            </div>
+            <div class="mb-3">
+                <input type="text" name="basic_salary" placeholder="Basic Salary" class="form-control" required>
+            </div>
+            <button type="submit" class="btn btn-dark w-100">Add Staff</button>
+        </form>
+    </div>
+</div>
+
+<div class="mt-4 mb-3 w-100 d-flex justify-content-center">
+    <div class="w-100" style="max-width: 700px; position: relative;">
+        <input id="search" class="form-control" placeholder="Search by name..." oninput="showSuggestions()" autocomplete="off" />
+        <ul id="suggestions" class="list-group position-absolute w-100" style="z-index: 999; display: none;"></ul>
+    </div>
+</div>
+
+<div class="table-responsive mt-4">
+    <table class="table table-bordered table-hover align-middle text-nowrap">
+        <thead class="table-light">
+            <tr>
+                <th>Date</th>
+                <th>Name</th>
+                <th>Phone</th>
+                <th>Email</th>
+                <th>Position</th>
+                <th>Date of Birth</th>
+                <th>Address</th>
+                <th>Basic Salary</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="staff-table">
+            {% for staff in staffs %}
+            <tr>
+                <td>{{ staff.date }}</td>
+                <td>{{ staff.name }}</td>
+                <td>{{ staff.phone }}</td>
+                <td>{{ staff.email }}</td>
+                <td>{{ staff.position }}</td>
+                <td>{{ staff.dob }}</td>
+                <td>{{ staff.address }}</td>
+                <td>{{staff.basic_salary}}</td>
+                <td>
+                    <a href="{% url 'staff_update' staff.id %}">Edit</a> |
+                    <a href="{% url 'staff_delete' staff.id %}">Delete</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<script>
+    function showSuggestions() {
+        const query = document.getElementById('search').value.trim();
+        const suggestionBox = document.getElementById('suggestions');
+
+        if (!query) {
+            suggestionBox.innerHTML = '';
+            suggestionBox.style.display = 'none';
+            return;
+        }
+
+        fetch(`/staffs/autocomplete/?q=${encodeURIComponent(query)}`)
+            .then(response => response.json())
+            .then(data => {
+                suggestionBox.innerHTML = '';
+                if (data.length === 0) {
+                    suggestionBox.style.display = 'none';
+                    return;
+                }
+
+                data.forEach(c => {
+                    const li = document.createElement('li');
+                    li.className = 'list-group-item list-group-item-action';
+                    li.textContent = c.name;
+                    li.onclick = () => {
+                        document.getElementById('search').value = c.name;
+                        suggestionBox.innerHTML = '';
+                        suggestionBox.style.display = 'none';
+                        autocomplete();
+                    };
+                    suggestionBox.appendChild(li);
+                });
+
+                suggestionBox.style.display = 'block';
+            });
+    }
+
+    document.addEventListener('click', (e) => {
+        if (!document.getElementById('search').contains(e.target)) {
+            document.getElementById('suggestions').style.display = 'none';
+        }
+    });
+
+    function autocomplete() {
+        const query = document.getElementById('search').value.trim();
+        if (!query) return;
+
+        fetch(`/staffs/autocomplete/?q=${encodeURIComponent(query)}`)
+            .then(response => response.json())
+            .then(data => {
+                const table = document.getElementById('staff-table');
+                table.innerHTML = '';
+                data.forEach(c => {
+                    const row = `<tr>
+                        <td>${c.name}</td>
+                        <td>${c.phone}</td>
+                        <td>${c.email}</td>
+                        <td>${c.position}</td>
+                        <td>${c.dob || '-'}</td>
+                        <td>${c.address || '-'}</td>
+                        <td>${c.basic_salary || '-'}</td>
+                        <td>
+                            <a href="/staffs/edit/${c.id}/">Edit</a> |
+                            <a href="/staffs/delete/${c.id}/">Delete</a>
+                        </td>
+                    </tr>`;
+                    table.innerHTML += row;
+                });
+
+                if (data.length === 0) {
+                    table.innerHTML = `<tr><td colspan="7" class="text-center">No matching staff found.</td></tr>`;
+                }
+            });
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,187 @@
+{% extends 'core/base.html' %}
+{% block title %}Monthly Salary Report{% endblock %}
+{% block content %}
+<div class="container mt-4">
+
+    <!-- ====== Section 1: Salary Calculation Form ====== -->
+    <h2 class="mb-4">Salary Calculator</h2>
+    <form id="salaryForm" class="row g-3 mb-5">
+        {% csrf_token %}
+        <div class="col-md-4">
+            <label class="form-label">Staff Name</label>
+            <select id="staffName" name="staff_id" class="form-select" required>
+                <option value="">-- Select Staff --</option>
+                {% for staff in staff_list %}
+                <option value="{{ staff.id }}" data-salary="{{ staff.basic_salary }}">
+                    {{ staff.name }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="col-md-4">
+            <label class="form-label">Basic Salary</label>
+            <input type="number" id="basicSalary" name="basic_salary" class="form-control" readonly>
+        </div>
+
+        <div class="col-md-4">
+            <label class="form-label">Bonus</label>
+            <input type="number" step="0.01" id="bonus" name="bonus" class="form-control" value="0">
+        </div>
+
+        <div class="col-md-4">
+            <label class="form-label">PF (12%)</label>
+            <input type="number" id="pf" name="pf" class="form-control" readonly>
+        </div>
+
+        <div class="col-md-4">
+            <label class="form-label">ESI (1.75%)</label>
+            <input type="number" id="esi" name="esi" class="form-control" readonly>
+        </div>
+
+        <div class="col-md-4">
+            <label class="form-label">Advance</label>
+            <input type="number" step="0.01" id="advance" name="advance" class="form-control" value="0">
+        </div>
+
+        <div class="col-md-4">
+            <label class="form-label">Total Gross</label>
+            <input type="number" id="totalGross" name="total_gross" class="form-control" readonly>
+        </div>
+
+        <div class="col-md-4">
+            <label class="form-label">Total Deductions</label>
+            <input type="number" id="totalDeductions" name="total_deductions" class="form-control" readonly>
+        </div>
+
+        <div class="col-md-4">
+            <label class="form-label fw-bold">Net Salary</label>
+            <input type="number" id="netSalary" name="net_salary" class="form-control fw-bold" readonly>
+        </div>
+
+        <!-- Save Button -->
+        <div class="col-12">
+            <button type="button" id="saveSalary" class="btn btn-success">Save Salary Record</button>
+        </div>
+    </form>
+
+    <!-- ====== Section 2: Monthly Salary Report Table ====== -->
+    <h2 class="mb-4">Monthly Salary Report</h2>
+    <form method="get" class="row g-3 mb-4 align-items-end">
+        <div class="col-md-4">
+            <label for="month" class="form-label">Month</label>
+            <select name="month" id="month" class="form-select">
+                {% for m, name in months %}
+                <option value="{{ m }}" {% if m == selected_month %}selected{% endif %}>{{ name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="col-md-4">
+            <label for="year" class="form-label">Year</label>
+            <input type="number" name="year" id="year" value="{{ selected_year }}" class="form-control">
+        </div>
+
+        <div class="col-md-4">
+            <button type="submit" class="btn btn-primary w-100">Filter</button>
+        </div>
+    </form>
+
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover align-middle" id="salaryTable">
+            <thead class="table-dark text-center">
+                <tr>
+                    <th>Staff Name</th>
+                    <th>Basic Salary</th>
+                    <th>Bonus</th>
+                    <th>PF (12%)</th>
+                    <th>ESI (1.75%) </th>
+                    <th>Advance</th>
+                    <th>Total Gross</th>
+                    <th>Total Deductions</th>
+                    <th>Net Salary</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for record in records %}
+                <tr class="text-center">
+                    <td class="text-start">{{ record.staff.name }}</td>
+                    <td>{{ record.staff.basic_salary|floatformat:2 }}</td>
+                    <td>{{ record.bonus|default:0|floatformat:2 }}</td>
+                    <td>{{ record.pf|floatformat:2 }}</td>
+                    <td>{{ record.esi|floatformat:2 }}</td>
+                    <td>{{ record.salary_advance|default:0|floatformat:2 }}</td>
+                    <td>{{ record.total_gross|floatformat:2 }}</td>
+                    <td>{{ record.total_deductions|floatformat:2 }}</td>
+                    <td class="fw-bold {% if record.net_salary < 0 %}text-danger{% else %}text-success{% endif %}">
+                        {{ record.net_salary|floatformat:2 }}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="text-center text-muted">No salary records found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+// Auto-fill and calculate
+document.getElementById("staffName").addEventListener("change", function () {
+    const selectedOption = this.options[this.selectedIndex];
+    const basicSalary = parseFloat(selectedOption.getAttribute("data-salary")) || 0;
+    document.getElementById("basicSalary").value = basicSalary.toFixed(2);
+    calculateSalary();
+});
+
+["bonus", "advance"].forEach(id => {
+    document.getElementById(id).addEventListener("input", calculateSalary);
+});
+
+function calculateSalary() {
+    const basic = parseFloat(document.getElementById("basicSalary").value) || 0;
+    const bonus = parseFloat(document.getElementById("bonus").value) || 0;
+    const advance = parseFloat(document.getElementById("advance").value) || 0;
+
+    const pf = basic * 0.12;
+    const esi = basic * 0.0175;
+
+    document.getElementById("pf").value = pf.toFixed(2);
+    document.getElementById("esi").value = esi.toFixed(2);
+
+    const totalGross = basic + bonus;
+    const totalDeductions = pf + esi + advance;
+    const netSalary = totalGross - totalDeductions;
+
+    document.getElementById("totalGross").value = totalGross.toFixed(2);
+    document.getElementById("totalDeductions").value = totalDeductions.toFixed(2);
+    document.getElementById("netSalary").value = netSalary.toFixed(2);
+}
+
+// Save Salary Record
+// Save Salary Record
+document.getElementById("saveSalary").addEventListener("click", function () {
+    const formData = new FormData(document.getElementById("salaryForm"));
+    fetch("{% url 'save_salary_record' %}", {
+        method: "POST",
+        headers: {
+            "X-CSRFToken": "{{ csrf_token }}"
+        },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // No alert, just reload table
+            location.reload();
+        } else {
+            alert("Error: " + data.error);
+        }
+    })
+    .catch(error => console.error("Error:", error));
+});
+
+</script>
+{% endblock %}

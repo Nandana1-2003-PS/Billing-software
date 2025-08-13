@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Invoice #{{ bill.id }}</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .invoice-box {
+            max-width: 900px;
+            margin: auto;
+            padding: 30px;
+            border: 1px solid #eee;
+            line-height: 1.6;
+        }
+
+        .invoice-box table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .invoice-box table th,
+        .invoice-box table td {
+            border: 1px solid #ccc;
+            padding: 8px;
+            text-align: left;
+        }
+
+        .invoice-box h2 {
+            text-align: center;
+        }
+
+        @media print {
+            .btn {
+                display: none !important;
+            }
+        }
+
+        .btn {
+            margin-top: 20px;
+            display: inline-block;
+            padding: 10px 20px;
+            background: green;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="invoice-box">
+    <h2>Tax Invoice</h2>
+
+    <table>
+        <tr>
+            <td><strong>Customer:</strong> {{ bill.customer.name }}</td>
+            <td><strong>Phone:</strong> {{ bill.customer.phone }}</td>
+        </tr>
+        <tr>
+            <td><strong>Invoice ID:</strong> #{{ bill.id }}</td>
+            <td><strong>Date:</strong> {{ bill.created_at|date:"d M, Y" }}</td>
+        </tr>
+        <tr>
+            <td><strong>Email:</strong> {{ bill.customer.email }}</td>
+            <td><strong>Gender:</strong> {{ bill.customer.gender }}</td>
+        </tr>
+        {% if bill.customer.dob %}
+        <tr>
+            <td colspan="2"><strong>DOB:</strong> {{ bill.customer.dob|date:"d M, Y" }}</td>
+        </tr>
+        {% endif %}
+        {% if bill.customer.address %}
+        <tr>
+            <td colspan="2"><strong>Address:</strong> {{ bill.customer.address }}</td>
+        </tr>
+        {% endif %}
+    </table>
+
+    <br><br>
+
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Service</th>
+                <th>Staff</th>
+                <th>Price (₹)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in bill.items.all %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ item.service.name }}</td>
+                <td>{{ item.staff.name }}</td>
+                <td>{{ item.price }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <br>
+    <table>
+        <tr><td>Subtotal:</td><td>₹{{ bill.subtotal }}</td></tr>
+        <tr><td>Discount:</td><td>₹{{ bill.discount }}</td></tr>
+        <tr><td>CGST (9%):</td><td>₹{{ cgst }}</td></tr>
+        <tr><td>SGST (9%):</td><td>₹{{ sgst }}</td></tr>
+        <tr><td><strong>Total:</strong></td><td><strong>₹{{ bill.total }}</strong></td></tr>
+    </table>
+
+    <br>
+    <a href="javascript:window.print()" class="btn">🖨️ Print</a>
+</div>
+
+<script>
+    window.onload = function () {
+        window.print();
+    };
+</script>
+
+</body>
+</html>

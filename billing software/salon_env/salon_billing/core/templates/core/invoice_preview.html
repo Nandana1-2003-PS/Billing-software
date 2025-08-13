@@ -1,0 +1,137 @@
+{% extends 'core/base.html' %}
+{% load humanize %}
+
+{% block content %}
+<style>
+    .invoice-box {
+        font-family: 'Arial', sans-serif;
+        max-width: 900px;
+        margin: auto;
+        padding: 30px;
+        border: 1px solid #eee;
+        line-height: 1.6;
+        font-size: 14px;
+        color: #333;
+    }
+
+    .invoice-box table {
+        width: 100%;
+        text-align: left;
+        border-collapse: collapse;
+    }
+
+    .invoice-box table th,
+    .invoice-box table td {
+        padding: 8px;
+        border: 1px solid #ccc;
+    }
+
+    .invoice-box h2 {
+        text-align: center;
+    }
+
+    .btn {
+        margin-top: 20px;
+        display: inline-block;
+        padding: 10px 20px;
+        background: green;
+        color: #fff;
+        text-decoration: none;
+        border-radius: 4px;
+    }
+</style>
+
+<div class="invoice-box">
+    <h2>Tax Invoice</h2>
+
+    <table>
+        <tr>
+            <td><strong>Customer:</strong> {{ bill.customer.name }}</td>
+            <td><strong>Phone:</strong> {{ bill.customer.phone }}</td>
+        </tr>
+        <tr>
+            <td><strong>Invoice ID:</strong> #{{ bill.id }}</td>
+            <td><strong>Date:</strong> {{ bill.created_at|date:"d M, Y" }}</td>
+        </tr>
+        <tr>
+            <td><strong>Email:</strong> {{ bill.customer.email }}</td>
+            <td><strong>Gender:</strong> {{ bill.customer.gender }}</td>
+        </tr>
+        {% if bill.customer.dob %}
+        <tr>
+            <td colspan="2"><strong>DOB:</strong> {{ bill.customer.dob|date:"d M, Y" }}</td>
+        </tr>
+        {% endif %}
+        {% if bill.customer.address %}
+        <tr>
+            <td colspan="2"><strong>Address:</strong> {{ bill.customer.address }}</td>
+        </tr>
+        {% endif %}
+    </table>
+
+    <br><br>
+
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Service</th>
+                <th>Staff</th>
+                <th>Price (₹)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in bill.items.all %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ item.service.name }}</td>
+                <td>{{ item.staff.name }}</td>
+                <td>{{ item.price }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <br>
+    <table class="totals">
+        <tr><td>Subtotal:</td><td>₹{{ subtotal }}</td></tr>
+        <tr><td>Discount:</td><td>₹{{ bill.discount }}</td></tr>
+        <tr><td>CGST (9%):</td><td>₹{{ cgst }}</td></tr>
+        <tr><td>SGST (9%):</td><td>₹{{ sgst }}</td></tr>
+        <tr><td><strong>Total:</strong></td><td><strong>₹{{ bill.total }}</strong></td></tr>
+    </table>
+
+
+    <!-- <table>
+        <tr>
+            <td><strong>Discount:</strong></td>
+            <td>₹{{ bill.discount }}</td>
+        </tr>
+        <tr>
+            <td><strong>Total:</strong></td>
+            <td>₹{{ bill.total }}</td>
+        </tr>
+    </table> -->
+
+    <br>
+
+    {% if request.session.whatsapp_url %}
+    <a href="{{ request.session.whatsapp_url }}" target="_blank" class="btn btn-success">
+        📤 Send on WhatsApp
+    </a>
+     <!-- Print Button -->
+    <!-- <a href="javascript:window.print()" class="btn" style="background: #007bff;">
+        🖨️ Print
+    </a> -->
+
+    <a href="{% url 'invoice_pdf' bill.id %}" target="_blank" class="btn" style="background: #007bff;">
+        🖨️ Print
+    </a>
+
+    <!-- Download PDF Button -->
+    <a href="{% url 'invoice_pdf' bill.id %}" class="btn" style="background: #6c757d;" target="_blank">
+        📄 Download PDF
+    </a>
+    {% endif %}
+
+{% endblock %}
