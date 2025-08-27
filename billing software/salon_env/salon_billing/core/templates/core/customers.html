@@ -142,7 +142,43 @@
         </select>
         <label for="state">State</label>
         <select name="state" id="state" required>
-            <!-- state options -->
+            <option value="">-- Select State --</option>
+            <option value="Andhra Pradesh">Andhra Pradesh</option>
+            <option value="Arunachal Pradesh">Arunachal Pradesh</option>
+            <option value="Assam">Assam</option>
+            <option value="Bihar">Bihar</option>
+            <option value="Chhattisgarh">Chhattisgarh</option>
+            <option value="Goa">Goa</option>
+            <option value="Gujarat">Gujarat</option>
+            <option value="Haryana">Haryana</option>
+            <option value="Himachal Pradesh">Himachal Pradesh</option>
+            <option value="Jharkhand">Jharkhand</option>
+            <option value="Karnataka">Karnataka</option>
+            <option value="Kerala">Kerala</option>
+            <option value="Madhya Pradesh">Madhya Pradesh</option>
+            <option value="Maharashtra">Maharashtra</option>
+            <option value="Manipur">Manipur</option>
+            <option value="Meghalaya">Meghalaya</option>
+            <option value="Mizoram">Mizoram</option>
+            <option value="Nagaland">Nagaland</option>
+            <option value="Odisha">Odisha</option>
+            <option value="Punjab">Punjab</option>
+            <option value="Rajasthan">Rajasthan</option>
+            <option value="Sikkim">Sikkim</option>
+            <option value="Tamil Nadu">Tamil Nadu</option>
+            <option value="Telangana">Telangana</option>
+            <option value="Tripura">Tripura</option>
+            <option value="Uttar Pradesh">Uttar Pradesh</option>
+            <option value="Uttarakhand">Uttarakhand</option>
+            <option value="West Bengal">West Bengal</option>
+            <option value="Andaman and Nicobar Islands">Andaman and Nicobar Islands</option>
+            <option value="Chandigarh">Chandigarh</option>
+            <option value="Dadra and Nagar Haveli and Daman and Diu">Dadra and Nagar Haveli and Daman and Diu</option>
+            <option value="Delhi">Delhi</option>
+            <option value="Jammu and Kashmir">Jammu and Kashmir</option>
+            <option value="Ladakh">Ladakh</option>
+            <option value="Lakshadweep">Lakshadweep</option>
+            <option value="Puducherry">Puducherry</option>
         </select>
         <input name="district" placeholder="District" required>
         <input name="place" placeholder="Place" required>
@@ -203,4 +239,84 @@
         </tbody>
     </table>
 </div>
+<script>
+    function showSuggestions() {
+        const query = document.getElementById('search').value.trim();
+        const suggestionBox = document.getElementById('suggestions');
+
+        if (!query) {
+            suggestionBox.innerHTML = '';
+            suggestionBox.style.display = 'none';
+            return;
+        }
+
+        fetch(`/customers/autocomplete/?q=${encodeURIComponent(query)}`)
+            .then(response => response.json())
+            .then(data => {
+                suggestionBox.innerHTML = '';
+                if (data.length === 0) {
+                    suggestionBox.style.display = 'none';
+                    return;
+                }
+
+                data.forEach(c => {
+                    const li = document.createElement('li');
+                    li.className = 'list-group-item list-group-item-action';
+                    li.textContent = c.name;
+                    li.onclick = () => {
+                        document.getElementById('search').value = c.name;
+                        suggestionBox.innerHTML = '';
+                        suggestionBox.style.display = 'none';
+                        autocomplete();
+                    };
+                    suggestionBox.appendChild(li);
+                });
+
+                suggestionBox.style.display = 'block';
+            });
+    }
+
+    document.addEventListener('click', (e) => {
+        if (!document.getElementById('search').contains(e.target)) {
+            document.getElementById('suggestions').style.display = 'none';
+        }
+    });
+
+    function autocomplete() {
+        const query = document.getElementById('search').value.trim();
+        if (!query) return;
+
+        fetch(`/customers/autocomplete/?q=${encodeURIComponent(query)}`)
+            .then(response => response.json())
+            .then(data => {
+                const table = document.getElementById('customer-table');
+                table.innerHTML = '';
+                data.forEach(c => {
+                    const row = `<tr>
+                        <td>${c.date}</td>
+                        <td>${c.name}</td>
+                        <td>${c.phone}</td>
+                        <td>${c.email}</td>
+                        <td>${c.dob }</td>
+                        <td>${c.state }</td>
+                        <td>${c.district }</td>
+                        <td>${c.place }</td>
+                        <td>${c.pincode }</td>
+                        
+                        <td>${c.address }</td>
+                        <td>${c.gender }</td>
+                        <td>
+                            <a href="/customers/edit/${c.id}/">Edit</a> |
+                            <a href="/customers/delete/${c.id}/">Delete</a>
+                        </td>
+                    </tr>`;
+                    table.innerHTML += row;
+                });
+
+                if (data.length === 0) {
+                    table.innerHTML = `<tr><td colspan="7" class="text-center">No matching customer found.</td></tr>`;
+                }
+            });
+    }
+</script>
 {% endblock %}

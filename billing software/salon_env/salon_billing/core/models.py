@@ -67,7 +67,7 @@ class ServiceRecord(models.Model):
         return f"{self.staff.name} served {self.customer.name} for {self.service.name} on {self.date}"
 
 
-# ✅ Only one version of Bill model
+
 class Bill(models.Model):
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE)
     date = models.DateTimeField(auto_now_add=True)
@@ -87,9 +87,11 @@ class BillItem(models.Model):
 
 class SalaryRecord(models.Model):
     staff = models.ForeignKey('Staff', on_delete=models.CASCADE)
+    unpaid_leave= models.IntegerField("Unpaid Leave(Days)", default=0)
     bonus = models.DecimalField("Bonus", max_digits=10, decimal_places=2, default=0)  # Editable
     pf = models.DecimalField("PF 12%", max_digits=10, decimal_places=2, blank=True, null=True)
     esi = models.DecimalField("ESI 1.75%", max_digits=10, decimal_places=2, blank=True, null=True, default=0)
+    
     salary_advance = models.DecimalField("Salary Advance", max_digits=10, decimal_places=2, blank=True, null=True, default=0)
     date = models.DateField(auto_now_add=True)
 
@@ -97,20 +99,32 @@ class SalaryRecord(models.Model):
         """Auto-calculate PF and ESI from basic salary if not provided."""
         if self.staff:
             basic = Decimal(self.staff.basic_salary or 0)
+            
             self.pf = basic * Decimal('0.12')
             self.esi = basic * Decimal('0.0175')
         super().save(*args, **kwargs)
 
     @property
-    def total_gross(self):
-        """Gross salary = Basic + Bonus"""
+    def per_day_salary(self):
+        """Calculate per-day salary from basic (assuming 30 days in a month)."""
         basic = Decimal(self.staff.basic_salary or 0)
-        return basic + (self.bonus or 0)
+        return basic / Decimal(30)
+
+    @property
+    def unpaid_leave_deduction(self):
+        """Deduction for unpaid leave days."""
+        return self.per_day_salary * (self.unpaid_leave or 0)
+
+    @property
+    def total_gross(self):
+        """Gross salary = Basic + Bonus - Unpaid leave deduction"""
+        basic = Decimal(self.staff.basic_salary or 0)
+        return basic + (self.bonus or 0) - (self.unpaid_leave_deduction or 0)
 
     @property
     def total_deductions(self):
-        """Total deductions = PF + ESI + Advance"""
-        return (self.pf or 0) + (self.esi or 0) + (self.salary_advance or 0)
+        """Total deductions = PF + ESI + Advance  """
+        return (self.pf or 0) + (self.esi or 0) + (self.salary_advance or 0) 
 
     @property
     def net_salary(self):

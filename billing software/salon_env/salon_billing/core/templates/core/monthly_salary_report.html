@@ -23,6 +23,10 @@
             <label class="form-label">Basic Salary</label>
             <input type="number" id="basicSalary" name="basic_salary" class="form-control" readonly>
         </div>
+        <div class="col-md-4">
+            <label class="form-label">Unpaid Leave(Days)</label>
+            <input type="number"  id="unpaid_leave" name="unpaid_leave" class="form-control" value="0">
+        </div>
 
         <div class="col-md-4">
             <label class="form-label">Bonus</label>
@@ -93,6 +97,7 @@
                 <tr>
                     <th>Staff Name</th>
                     <th>Basic Salary</th>
+                    <th>Unpaid Leave</th>
                     <th>Bonus</th>
                     <th>PF (12%)</th>
                     <th>ESI (1.75%) </th>
@@ -100,6 +105,7 @@
                     <th>Total Gross</th>
                     <th>Total Deductions</th>
                     <th>Net Salary</th>
+                    <th>Action</th>
                 </tr>
             </thead>
             <tbody>
@@ -107,6 +113,7 @@
                 <tr class="text-center">
                     <td class="text-start">{{ record.staff.name }}</td>
                     <td>{{ record.staff.basic_salary|floatformat:2 }}</td>
+                    <td>{{ record.unpaid_leave}}</td>
                     <td>{{ record.bonus|default:0|floatformat:2 }}</td>
                     <td>{{ record.pf|floatformat:2 }}</td>
                     <td>{{ record.esi|floatformat:2 }}</td>
@@ -116,6 +123,7 @@
                     <td class="fw-bold {% if record.net_salary < 0 %}text-danger{% else %}text-success{% endif %}">
                         {{ record.net_salary|floatformat:2 }}
                     </td>
+                    <td> <a class="btn btn-sm btn-primary" href="{% url 'salary_slip_preview' record.id%}">view</a></td>
                 </tr>
                 {% empty %}
                 <tr>
@@ -136,7 +144,7 @@ document.getElementById("staffName").addEventListener("change", function () {
     calculateSalary();
 });
 
-["bonus", "advance"].forEach(id => {
+["bonus", "advance", "unpaid_leave"].forEach(id => {
     document.getElementById(id).addEventListener("input", calculateSalary);
 });
 
@@ -144,14 +152,17 @@ function calculateSalary() {
     const basic = parseFloat(document.getElementById("basicSalary").value) || 0;
     const bonus = parseFloat(document.getElementById("bonus").value) || 0;
     const advance = parseFloat(document.getElementById("advance").value) || 0;
-
+    const unpaidLeave = parseInt(document.getElementById("unpaid_leave").value) || 0;
     const pf = basic * 0.12;
     const esi = basic * 0.0175;
 
     document.getElementById("pf").value = pf.toFixed(2);
     document.getElementById("esi").value = esi.toFixed(2);
 
-    const totalGross = basic + bonus;
+    const perDaySalary = basic / 30;
+    const unpaidLeaveDeduction = perDaySalary * unpaidLeave;
+    const totalGross = basic + bonus - unpaidLeaveDeduction;
+    
     const totalDeductions = pf + esi + advance;
     const netSalary = totalGross - totalDeductions;
 

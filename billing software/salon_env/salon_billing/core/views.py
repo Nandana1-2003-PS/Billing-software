@@ -9,7 +9,6 @@ from django.http import HttpResponse
 from django.template.loader import get_template
 from django.conf import settings
 from django.urls import reverse
-from django.utils.http import urlencode
 import urllib.parse
 import os
 from django.utils import timezone
@@ -21,8 +20,7 @@ from .models import SalaryRecord
 from xhtml2pdf import pisa
 from .models import Bill
 from django.shortcuts import render, redirect, get_object_or_404
-from django.urls import reverse
-from django.contrib import messages
+
 from django.utils.http import urlencode
 from .models import Customer, Bill, BillItem, Service, Staff
 from .models import ServiceRecord
@@ -40,17 +38,17 @@ def generate_invoice_pdf(request, bill_id):
     weasyprint.HTML(string=html_string).write_pdf(response)
     return response
 
-# Send PDF via WhatsApp
-def send_invoice_on_whatsapp(pdf_url, customer_number):
-    client = Client(account_sid, auth_token)
+# # Send PDF via WhatsApp
+# def send_invoice_on_whatsapp(pdf_url, customer_number):
+#     client = Client(account_sid, auth_token)
 
-    message = client.messages.create(
-        from_='whatsapp:+14155238886',
-        body='Here is your invoice 📄',
-        media_url=[pdf_url],
-        to=f'whatsapp:{customer_number}'
-    )
-    return message.sid
+#     message = client.messages.create(
+#         from_='whatsapp:+14155238886',
+#         body='Here is your invoice 📄',
+#         media_url=[pdf_url],
+#         to=f'whatsapp:{customer_number}'
+#     )
+#     return message.sid
 
 
 
@@ -185,6 +183,59 @@ def create_bill(request):
     staff = Staff.objects.all()
     return render(request, 'core/create_bill.html', {'staff': staff})
 
+def invoice_preview(request, bill_id):
+    # Get the bill and related items
+    bill = get_object_or_404(Bill, id=bill_id)
+    bill_items = bill.items.all()
+
+    # Calculate totals
+    subtotal = sum(item.price for item in bill_items) - bill.discount
+    cgst = (subtotal * Decimal('0.09')).quantize(Decimal('0.01'))
+    sgst = (subtotal * Decimal('0.09')).quantize(Decimal('0.01'))
+
+    # Customer details
+    customer = bill.customer
+
+    # Create services list string
+    service_names = [item.service.name for item in bill_items]
+    services_str = ', '.join(service_names)
+
+    # Create invoice links
+    invoice_url = request.build_absolute_uri(reverse("invoice_preview", args=[bill.id]))
+    invoice_pdf_url = request.build_absolute_uri(reverse("invoice_pdf", args=[bill.id]))  # Change 'invoice_pdf' to your PDF view name
+
+    # WhatsApp message
+    message = (
+        f"Hi {customer.name},\n"
+        f"Thank you for your visit!\n"
+        f"Your bill is ready.\n"
+        f"Services: {services_str}\n"
+        f"Total: ₹{bill.total}\n"
+        f"View bill here: {invoice_pdf_url}\n\n"
+        f"- Team Salon"
+    )
+
+    encoded_message = urllib.parse.quote(message)
+
+    # WhatsApp URL
+    phone_number = customer.phone
+    whatsapp_url = f"https://wa.me/{phone_number}?text={encoded_message}"
+
+    # Send directly if requested
+    if request.GET.get("send_whatsapp") == "true":
+        return redirect(whatsapp_url)
+
+    # Render invoice preview page
+    return render(request, "core/invoice_preview.html", {
+        "bill": bill,
+        "bill_items": bill_items,
+        "subtotal": subtotal,
+        "cgst": cgst,
+        "sgst": sgst,
+        "send_whatsapp": False,
+        "whatsapp_url": whatsapp_url,
+        "redirect_url": reverse("create_bill"),
+    })
 def customer_list_create(request):
     if request.method == 'POST':
         name = request.POST['name']
@@ -338,11 +389,6 @@ def staff_update(request, pk):
 
 
 # Delete Staff
-# def staff_delete(request, pk):
-#     Staff = get_object_or_404(Staff, pk=pk)
-    
-#     Staff.delete()
-#     return redirect('Staff_list_create')
 
 def staff_delete(request, pk):
     staff_obj = get_object_or_404(Staff, pk=pk)
@@ -361,7 +407,7 @@ def staff_autocomplete(request):
         'position': c.position,
         'dob': c.dob.strftime('%Y-%m-%d') if c.dob else '',
         'gender': c.gender,
-        'address': c.address
+        'address': c.address,
     } for c in staffs]
 
     return JsonResponse(data, safe=False)
@@ -421,7 +467,7 @@ def service_delete(request, service_id):
 def generate_invoice(request, bill_id):
     bill = get_object_or_404(Bill, id=bill_id)
     bill_items = BillItem.objects.filter(bill=bill)
-    logo_path = os.path.join(settings.BASE_DIR, '/salon_billing/core/templates/static/nibhashrdnobg.png')  # Copy your logo here
+    logo_path = os.path.join(settings.BASE_DIR, '/salon_billing/core/templates/static/nibhashrdnobg.png') 
 
     template = get_template('core/invoice.html')
     html = template.render({
@@ -436,27 +482,7 @@ def generate_invoice(request, bill_id):
     return response
 
 
-def invoice_preview(request, bill_id):
-    bill = get_object_or_404(Bill, id=bill_id)
 
-    bill_items = bill.items.all()
-    from decimal import Decimal
-
-    subtotal = sum(item.price for item in bill_items) - bill.discount
-    cgst = (subtotal * Decimal('0.09')).quantize(Decimal('0.01'))
-    sgst = (subtotal * Decimal('0.09')).quantize(Decimal('0.01'))
-
-
-    return render(request, "core/invoice_preview.html", {
-        "bill": bill,
-        "bill_items": bill_items,
-        "subtotal": subtotal,
-        "cgst": cgst,
-        "sgst": sgst,
-        "send_whatsapp": request.GET.get("send_whatsapp") == "true",
-        "whatsapp_url": request.session.get('whatsapp_url'),
-        "redirect_url": reverse("create_bill"),
-    })
 def invoice_pdf(request, bill_id):
     bill = get_object_or_404(Bill, id=bill_id)
     bill_items = bill.items.all()
@@ -499,7 +525,7 @@ def view_billitems(request, bill_id):
     })
 
 def list_bills(request):
-    # bills = Bill.objects.select_related('customer').order_by('-date')
+    
     bills = Bill.objects.select_related('customer').prefetch_related('items__service', 'items__staff')
 
     return render(request, 'core/list_bills.html', {'bills': bills})
@@ -561,8 +587,8 @@ def salary_report(request):
         special_allowance = basic * Decimal('0.25')
         bonus = basic * Decimal('0.44')
         pf = basic * Decimal('0.12')
-        professional_tax = Decimal('200.00')  # Example fixed amount
-        salary_advance = Decimal('0.00')      # Example default
+        professional_tax = Decimal('200.00')  
+        salary_advance = Decimal('0.00')      
 
         total_gross = basic + da + hra + special_allowance + bonus
         total_deductions = pf + professional_tax + salary_advance
@@ -595,7 +621,7 @@ def save_salary_record(request):
         try:
             staff_id = request.POST.get("staff_id")
             staff = Staff.objects.get(id=staff_id)
-
+            unpaid_leave=int(request.POST.get("unpaid_leave", 0) or 0)
             bonus = float(request.POST.get("bonus", 0) or 0)
             pf = float(request.POST.get("pf", 0) or 0)
             esi = float(request.POST.get("esi", 0) or 0)
@@ -604,6 +630,7 @@ def save_salary_record(request):
             # Store actual DB fields, including ESI
             SalaryRecord.objects.create(
                 staff=staff,
+                unpaid_leave=unpaid_leave,
                 bonus=bonus,
                 pf=pf,
                 esi=esi,
@@ -617,8 +644,60 @@ def save_salary_record(request):
 
     return JsonResponse({"success": False, "error": "Invalid request"})
 
+
 def base(request):
     return render(request, 'core/base.html')
 
 def dashboard(request):
     return render(request, 'core/dashboard.html')
+
+def salary_slip_preview(request, record_id):
+    """Preview salary slip in browser."""
+    record = get_object_or_404(SalaryRecord.objects.select_related("staff"), id=record_id)
+
+    # Generate WhatsApp message text
+    staff = record.staff
+    message = (
+        f"Hi {staff.name},\n"
+        f"Your salary slip for {record.date.strftime('%B %Y')} is ready.\n"
+        f"Net Salary: ₹{record.net_salary}\n"
+        f"View Slip: {request.build_absolute_uri(reverse('salary_slip_preview', args=[record.id]))}\n\n"
+        f"- HR Team"
+    )
+    encoded_message = urllib.parse.quote(message)
+    phone = staff.phone.strip().replace(" ", "").replace("+", "")
+    if not phone.startswith("91"):  # default India
+        phone = "91" + phone
+
+    whatsapp_url = f"https://wa.me/{phone}?text={encoded_message}"
+
+    return render(request, "core/salary_slip_preview.html", {
+        "record": record,
+        "whatsapp_url": whatsapp_url,
+    })
+
+
+def salary_slip_send_whatsapp(request, record_id):
+    """Redirect directly to WhatsApp with salary slip message."""
+    record = get_object_or_404(SalaryRecord.objects.select_related("staff"), id=record_id)
+    staff = record.staff
+
+    message = (
+        f"Hi {staff.name},\n"
+        f"Your salary slip for {record.date.strftime('%B %Y')} is ready.\n"
+        f"Net Salary: ₹{record.net_salary}\n"
+        f"View Slip: {request.build_absolute_uri(reverse('salary_slip_preview', args=[record.id]))}\n\n"
+        f"- HR Team"
+    )
+    encoded_message = urllib.parse.quote(message)
+
+    phone = staff.phone.strip().replace(" ", "").replace("+", "")
+    if not phone.startswith("91"):  # default India
+        phone = "91" + phone
+
+    whatsapp_url = f"https://wa.me/{phone}?text={encoded_message}"
+    return redirect(whatsapp_url)
+
+def salary_pdf(request, record_id):
+    record = get_object_or_404(SalaryRecord, pk=record_id)
+    return render(request, "core/salary_pdf.html", {"record": record})

@@ -38,8 +38,10 @@ urlpatterns = [
     path('salary-report/', views.salary_report, name='salary_report'),
     path('salary-report/monthly/', views.monthly_salary_report, name='monthly_salary_report'),
     path("save-salary/", views.save_salary_record, name="save_salary_record"),
-
-
+    
+    path("salary-slip/<int:record_id>/", views.salary_slip_preview, name="salary_slip_preview"),
+    path("salary-slip/<int:record_id>/send/", views.salary_slip_send_whatsapp, name="salary_slip_send_whatsapp"),
+    path('salary/pdf/<int:record_id>/', views.salary_pdf, name='salary_pdf'),
     # Dashboard
     path('', views.base, name='base'),
     

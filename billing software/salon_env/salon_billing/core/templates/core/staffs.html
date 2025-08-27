@@ -133,13 +133,14 @@
                 table.innerHTML = '';
                 data.forEach(c => {
                     const row = `<tr>
+                        <td>${c.date}</td>
                         <td>${c.name}</td>
                         <td>${c.phone}</td>
                         <td>${c.email}</td>
                         <td>${c.position}</td>
-                        <td>${c.dob || '-'}</td>
-                        <td>${c.address || '-'}</td>
-                        <td>${c.basic_salary || '-'}</td>
+                        <td>${c.dob}</td>
+                        <td>${c.address}</td>
+                        <td>${c.basic_salary}</td>
                         <td>
                             <a href="/staffs/edit/${c.id}/">Edit</a> |
                             <a href="/staffs/delete/${c.id}/">Delete</a>

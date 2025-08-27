@@ -65,7 +65,9 @@
     {% endif %}
 
     <h2>Create New Bill</h2>
-
+    <title>bill</title>
+    <p>paragraph</p>
+    
     <form method="post">
         {% csrf_token %}
 
@@ -224,6 +226,8 @@
                     div.dataset.email = customer.email;
                     div.dataset.dob= customer.dob;
                     div.dataset.gender= customer.gender;
+                    // show
+
 
 
                     div.onclick = function () {

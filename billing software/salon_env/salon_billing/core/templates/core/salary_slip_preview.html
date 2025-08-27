@@ -1,0 +1,128 @@
+{% extends "core/base.html" %}
+{% load humanize %}
+
+{% block content %}
+<style>
+  @media print {
+    * {
+      -webkit-print-color-adjust: exact !important;
+      color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    body {
+      margin: 0;
+      padding: 0;
+    }
+    .a4-sheet {
+      width: 210mm;
+      min-height: 297mm;
+      margin: auto;
+      padding: 20mm;
+      border: 2px solid black;
+      box-sizing: border-box;
+      background: white;
+    }
+  }
+
+  /* For screen view (before printing) */
+  .a4-sheet {
+    width: 800px; /* around A4 width */
+    min-height: 1100px;
+    margin: 20px auto;
+    padding: 30px;
+    border: 2px solid black;
+    background: white;
+    box-shadow: 0 0 10px rgba(0,0,0,0.15);
+  }
+</style>
+
+<center>
+<div class="a4-sheet text-sm">
+
+  <!-- Header -->
+  <div class="flex justify-between items-center border-b-2 border-gray-400 pb-3 mb-6">
+    <div>
+      <h1 class="text-xl font-bold">Company Name</h1>
+      <p class="text-gray-600">123 Business Street, City</p>
+      <p class="text-gray-600">Email: info@company.com</p>
+    </div>
+    <div class="text-right">
+      <h2 class="text-2xl font-bold underline">Salary Slip</h2>
+      <p class="text-gray-700">Month: {{ record.date|date:"F Y" }}</p>
+    </div>
+  </div>
+
+  <!-- Employee Info -->
+  <div class="grid grid-cols-2 gap-4 mb-6 text-gray-800">
+    <div>
+      <p><strong>Employee Name:</strong> {{ record.staff.name }}</p>
+      <p><strong>Employee ID:</strong> {{ record.staff.id }}</p>
+      <p><strong>Designation:</strong> {{ record.staff.position }}</p>
+    </div>
+    <div>
+      <p><strong>Date of Joining:</strong> {{ record.staff.date }}</p>
+    </div>
+  </div>
+
+  <!-- Salary Details Table -->
+  <table class="w-full border border-gray-500 text-sm mb-6">
+    <thead>
+      <tr class="bg-gray-200">
+        <th class="border border-gray-500 px-3 py-2 text-left">Earnings</th>
+        <th class="border border-gray-500 px-3 py-2 text-right">Amount (₹)</th>
+        <th class="border border-gray-500 px-3 py-2 text-left">Deductions</th>
+        <th class="border border-gray-500 px-3 py-2 text-right">Amount (₹)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="border px-3 py-2">Basic Salary</td>
+        <td class="border px-3 py-2 text-right">{{ record.staff.basic_salary|floatformat:2|intcomma }}</td>
+        <td class="border px-3 py-2">PF</td>
+        <td class="border px-3 py-2 text-right">{{ record.pf|floatformat:2|intcomma }}</td>
+      </tr>
+      <tr>
+        <td class="border px-3 py-2">Bonus</td>
+        <td class="border px-3 py-2 text-right">{{ record.bonus|floatformat:2|intcomma }}</td>
+        <td class="border px-3 py-2">ESI</td>
+        <td class="border px-3 py-2 text-right">{{ record.esi|floatformat:2|intcomma }}</td>
+      </tr>
+      <tr>
+        <td class="border px-3 py-2">Unpaid Leave Deduction</td>
+        <td class="border px-3 py-2 text-right">- {{ record.unpaid_leave_deduction|floatformat:2|intcomma }}</td>
+        <td class="border px-3 py-2">Advance</td>
+        <td class="border px-3 py-2 text-right">{{ record.salary_advance|floatformat:2|intcomma }}</td>
+      </tr>
+      <tr class="bg-gray-100 font-semibold">
+        <td class="border px-3 py-2 text-right" colspan="2">
+          Total Earnings: ₹ {{ record.total_gross|floatformat:2|intcomma }}
+        </td>
+        <td class="border px-3 py-2 text-right" colspan="2">
+          Total Deductions: ₹ {{ record.total_deductions|floatformat:2|intcomma }}
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- Net Salary -->
+  <div class="flex justify-between items-center border-t-2 border-gray-400 pt-4 mb-10">
+    <p class="font-bold text-gray-700">Net Salary (in words):</p>
+    <p class="text-2xl font-bold text-green-700">₹ {{ record.net_salary|floatformat:2|intcomma }}</p>
+  </div>
+
+  <!-- Buttons (unchanged, hidden on print) -->
+  <div class="flex justify-center gap-3 mt-8 print:hidden">
+    <a href="{{ whatsapp_url }}" class="btn btn-success">
+      📲 Send via WhatsApp
+    </a>
+    <a href="{% url 'salary_pdf' record.id %}">
+    <button onclick="window.print()" target="_blank" class="btn" style="background: #007bff;">
+      🖨 Print / Save PDF
+    </button>
+    </a>
+
+  </div>
+
+</div>
+</center>
+{% endblock %}

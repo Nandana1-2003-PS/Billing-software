@@ -116,7 +116,8 @@
     <br>
 
     {% if request.session.whatsapp_url %}
-    <a href="{{ request.session.whatsapp_url }}" target="_blank" class="btn btn-success">
+    <!-- <a href="{{ request.session.whatsapp_url }}" target="_blank" class="btn btn-success"> -->
+    <a href="{% url 'invoice_preview' bill.id %}?send_whatsapp=true" class="btn btn-success">
         📤 Send on WhatsApp
     </a>
      <!-- Print Button -->
