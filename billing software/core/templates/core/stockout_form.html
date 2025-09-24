@@ -1,0 +1,29 @@
+{% extends "core/base.html" %}
+{% block content %}
+<div class="container mt-4">
+  <h2>{{ title }}</h2>
+  <form method="POST">
+    {% csrf_token %}
+    <label>Product</label>
+    <select name="product" class="form-control" required>
+      {% for product in products %}
+      <option value="{{ product.id }}">{{ product.name }}</option>
+      {% endfor %}
+    </select>
+
+    <label>Quantity</label>
+    <input type="number" name="quantity" class="form-control" required>
+
+    <label>Reason</label>
+    <select name="reason" class="form-control">
+      <option value="sale">Sale</option>
+      <option value="service">Service Use</option>
+      <option value="wastage">Wastage</option>
+      <option value="other">Other</option>
+    </select>
+
+    <button type="submit" class="btn btn-danger mt-3">Save</button>
+    <a href="{% url 'product_list' %}" class="btn btn-secondary mt-3">Cancel</a>
+  </form>
+</div>
+{% endblock %}

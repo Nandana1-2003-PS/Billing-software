@@ -3,54 +3,147 @@
 {% block title %}Edit Staff{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-center align-items-center" style="min-height: 90vh;">
-    <div class="card p-4 shadow-sm" style="width: 100%; max-width: 600px;">
-        <h2 class="mb-4 text-center">Edit Staff</h2>
+<div class="flex justify-center items-center min-h-[90vh] px-4">
+  <div class="bg-white rounded-2xl shadow-lg p-8 w-full max-w-2xl">
+    <h2 class="text-2xl font-bold text-center text-slate-800 mb-6">Edit Staff</h2>
 
-        <form method="post">
-            {% csrf_token %}
+    <form method="post" id="staffForm" class="space-y-5">
+      {% csrf_token %}
 
-            <div class="mb-3">
-                <label for="name" class="form-label">Name:</label>
-                <input type="text" name="name" value="{{ staff.name }}" class="form-control" required>
-            </div>
+      <!-- Name -->
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">Name</label>
+        <input type="text" name="name" value="{{ staff.name }}"
+               class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none" required>
+        <span class="text-red-600 text-sm" id="error-name"></span>
+      </div>
 
-            <div class="mb-3">
-                <label for="phone" class="form-label">Phone:</label>
-                <input type="text" name="phone" value="{{ staff.phone }}" class="form-control" required>
-            </div>
+      <!-- Phone -->
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">Phone</label>
+        <input type="tel" name="phone" value="{{ staff.phone }}"
+               class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none" required inputmode="numeric" maxlength="10">
+        <span class="text-red-600 text-sm" id="error-phone"></span>
+      </div>
 
-            <div class="mb-3">
-                <label for="email" class="form-label">Email:</label>
-                <input type="email" name="email" value="{{ staff.email }}" class="form-control">
-            </div>
+      <!-- Email -->
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">Email</label>
+        <input type="email" name="email" value="{{ staff.email }}"
+               class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+        <span class="text-red-600 text-sm" id="error-email"></span>
+      </div>
 
-            <div class="mb-3">
-                <label for="position" class="form-label">Position:</label>
-                <input type="text" name="position" value="{{ staff.position }}" class="form-control" required>
-            </div>
+      <!-- Position -->
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">Position</label>
+        <input type="text" name="position" value="{{ staff.position }}"
+               class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none" required>
+        <span class="text-red-600 text-sm" id="error-position"></span>
+      </div>
 
-            <div class="mb-3">
-                <label for="dob" class="form-label">Date of Birth:</label>
-                <input type="date" name="dob" value="{{ staff.dob|date:'Y-m-d' }}" class="form-control" required>
-            </div>
+      <!-- DOB -->
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">Date of Birth</label>
+        <input type="date" name="dob" value="{{ staff.dob|date:'Y-m-d' }}"
+               class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none" required>
+        <span class="text-red-600 text-sm" id="error-dob"></span>
+      </div>
 
-            <div class="mb-3">
-                <label for="address" class="form-label">Address:</label>
-                <textarea name="address" rows="4" class="form-control">{{ staff.address }}</textarea>
-            </div>
+      <!-- Address -->
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">Address</label>
+        <textarea name="address" rows="4"
+                  class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none">{{ staff.address }}</textarea>
+        <span class="text-red-600 text-sm" id="error-address"></span>
+      </div>
 
-           <div class="mb-3">
-                <label for="basic_salary" class="form-label">Basic Salary:</label>
-                <input type="basic_salary" name="basic_salary" value="{{ staff.basic_salary }}" class="form-control">
-            </div>
+      <!-- Basic Salary -->
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">Basic Salary</label>
+        <input type="text" name="basic_salary" value="{{ staff.basic_salary }}"
+               class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+        <span class="text-red-600 text-sm" id="error-basic_salary"></span>
+      </div>
 
-            <button type="submit" class="btn btn-dark w-100">Update</button>
-        </form>
+      <!-- Submit -->
+      <button type="submit"
+              class="w-full bg-indigo-600 text-white font-semibold py-2 rounded-lg hover:bg-indigo-700 transition-colors">
+        Update
+      </button>
+    </form>
 
-        <div class="mt-3 text-center">
-            <a href="{% url 'staff_list_create' %}" class="btn btn-secondary">← Back to Staff List</a>
-        </div>
+    <div class="mt-4 text-center">
+      <a href="{% url 'staff_list_create' %}"
+         class="inline-block bg-slate-200 text-slate-700 px-4 py-2 rounded-lg hover:bg-slate-300 transition-colors">
+        ← Back to Staff List
+      </a>
     </div>
+  </div>
 </div>
+
+<script>
+document.getElementById("staffForm").addEventListener("submit", function(e) {
+  let valid = true;
+
+  // Clear old errors
+  document.querySelectorAll("span[id^='error-']").forEach(span => span.textContent = "");
+
+  const name = document.querySelector("[name='name']").value.trim();
+  const phone = document.querySelector("[name='phone']").value.trim();
+  const email = document.querySelector("[name='email']").value.trim();
+  const position = document.querySelector("[name='position']").value.trim();
+  const dob = document.querySelector("[name='dob']").value;
+  const address = document.querySelector("[name='address']").value.trim();
+  const salary = document.querySelector("[name='basic_salary']").value.trim();
+
+  if (name.length < 3) {
+    document.getElementById("error-name").textContent = "Name must be at least 3 characters.";
+    valid = false;
+  }
+
+  if (!/^\d{10}$/.test(phone)) {
+    document.getElementById("error-phone").textContent = "Phone must be exactly 10 digits.";
+    valid = false;
+  }
+
+  if (email && !/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email)) {
+    document.getElementById("error-email").textContent = "Please enter a valid email address.";
+    valid = false;
+  }
+
+  if (position.length < 2) {
+    document.getElementById("error-position").textContent = "Position is required.";
+    valid = false;
+  }
+
+  if (dob) {
+    const birthDate = new Date(dob);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const m = today.getMonth() - birthDate.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    if (age < 18) {
+      document.getElementById("error-dob").textContent = "Staff must be at least 18 years old.";
+      valid = false;
+    }
+  }
+
+  if (address.length < 5) {
+    document.getElementById("error-address").textContent = "Address is required.";
+    valid = false;
+  }
+
+  if (!/^\d+(\.\d{1,2})?$/.test(salary) || parseFloat(salary) <= 0) {
+    document.getElementById("error-basic_salary").textContent = "Enter a valid positive salary.";
+    valid = false;
+  }
+
+  if (!valid) {
+    e.preventDefault();
+  }
+});
+</script>
 {% endblock %}

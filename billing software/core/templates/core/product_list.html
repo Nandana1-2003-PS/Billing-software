@@ -1,0 +1,34 @@
+{% extends "core/base.html" %}
+{% block content %}
+<div class="container mt-4">
+  <h2> Product Stock</h2>
+  <a href="{% url 'product_add' %}" class="btn btn-primary mb-3">Add Product</a>
+  <a href="{% url 'stockin_add' %}" class="btn btn-success mb-3">Add Stock In</a>
+  <a href="{% url 'stockout_add' %}" class="btn btn-danger mb-3">Add Stock Out</a>
+
+  <table class="table table-bordered">
+    <thead class="table-dark">
+      <tr>
+        <th>Name</th>
+        <th>Category</th>
+        <th>Current Stock</th>
+        <th>Unit</th>
+        <th>Min Qty</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for product in products %}
+      <tr class="{% if product.current_stock <= product.min_quantity %}table-danger{% endif %}">
+        <td>{{ product.name }}</td>
+        <td>{{ product.category }}</td>
+        <td>{{ product.current_stock }}</td>
+        <td>{{ product.unit }}</td>
+        <td>{{ product.min_quantity }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="5" class="text-center">No products yet</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

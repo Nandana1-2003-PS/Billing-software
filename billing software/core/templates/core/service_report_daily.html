@@ -1,0 +1,138 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+<style>
+    h2 {
+        text-align: center;
+        font-weight: 600;
+        margin-bottom: 30px;
+        color: #222;
+    }
+
+    .filter-form {
+        border-radius: 12px;
+        box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+        padding: 20px;
+        background: #fff;
+        display: inline-block;
+        text-align: center;
+        width: 100%;
+        max-width: 700px;
+        
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    th {
+        background: #343a40;
+        color: #fff;
+        font-weight: 600;
+        text-align: center;
+    }
+
+    td {
+        text-align: center;
+    }
+
+    tr:nth-child(even) {
+        background-color: #f8f9fa;
+    }
+
+    tr:hover {
+        background-color: #f1f3f5;
+    }
+
+    tfoot td {
+        font-weight: 600;
+        background-color: #f8f9fa;
+    }
+
+    .no-records {
+        text-align: center;
+        color: #888;
+        font-style: italic;
+        padding: 20px;
+    }
+
+    .btn-primary {
+        border-radius: 8px;
+        padding: 6px 16px;
+        font-weight: 500;
+    }
+
+    input[type="date"] {
+        border-radius: 8px;
+        padding: 6px 10px;
+    }
+</style>
+
+<div class="container my-4">
+    <h2>Service Report - {{ today }}</h2>
+
+    <!-- Filter Form -->
+
+    <div class="flex justify-center">
+        <form method="get" class="filter-form d-flex flex-wrap gap-3 align-items-end justify-content-center">
+            <div>
+                <label for="date" class="form-label">Select Date:</label>
+                <input type="date" id="date" name="date" value="{{ today }}" class="form-control">
+            </div>
+            <div>
+                <button type="submit" class="btn btn-primary">Filter</button>
+            </div>
+        </form>
+    </div><br>
+
+    <!-- Report Table -->
+    <div class="table-responsive">
+        <table class="table align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>Sl. No</th>
+                    <th>Date</th>
+                    <th>Service</th>
+                    <th>Staff</th>
+                    <th>Discount</th>
+                    <th>Price</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in items %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ item.bill.created_at|date:"Y-m-d"  }}</td>
+                    <td>{{ item.service.name }}</td>
+                    <td>{{ item.staff.name }}</td>
+                    <td>{{ item.bill.discount }}</td>
+                    <td>{{ item.service.price }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="no-records">No services found for today.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="5" style="text-align:right;">Items Total:</td>
+                    <td>{{ items_total }}</td>            
+                </tr>                
+                <tr>
+                    <td colspan="5" style="text-align:right;">Discounts:</td>
+                    <td>-{{ discounts_total }}</td>
+                </tr>
+                <tr>
+                    <td colspan="5" style="text-align:right;">Grand Total:</td>
+                    <td>{{ grand_total }}</td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -5,53 +5,180 @@
 {% block content %}
 <style>
     :root {
-        --primary: black;
-        --border: #ccc;
-        --hover: #f9f9f9;
+        --primary: #000;
+        --border: #d1d5db;
+        --hover-bg: #f9f9f9;
+        --radius: 8px;
+        --shadow: rgba(0,0,0,0.05);
     }
 
+    body {
+        font-family: 'Inter', sans-serif;
+        background-color: #f9fafb;
+    }
+
+    /* Form Container */
     .form-container {
         background: #fff;
-        padding: 2rem;
+        padding: 2.5rem 2rem;
         border: 1px solid var(--border);
-        border-radius: 8px;
-        max-width: 800px;
+        border-radius: var(--radius);
+        max-width: 850px;
         width: 100%;
-        margin: auto;
-        box-shadow: 0 0 10px rgba(0,0,0,0.05);
+        margin: 2.5rem auto;
+        box-shadow: 0 4px 12px var(--shadow);
     }
 
+    /* Form Heading */
     .form-container h2 {
         text-align: center;
         color: var(--primary);
-        margin-bottom: 1.5rem;
+        margin-bottom: 5rem;
+        font-size: 1.8rem;
+        font-weight: 700;
+        position: relative;
     }
 
+    .form-container h2::after {
+        content: "";
+        display: block;
+        width: 70px;
+        height: 4px;
+        background: var(--primary);
+        margin: 0.5rem auto 0;
+        border-radius: 2px;
+    }
+
+    /* Labels & Inputs */
     label {
         font-weight: 500;
+        margin-bottom: 0.3rem;
+        display: block;
+        color: #374151;
     }
 
+    input.form-control,
+    select.form-select {
+        width: 100%;
+        padding: 0.65rem 0.75rem;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        transition: all 0.2s;
+    }
+
+    input.form-control:focus,
+    select.form-select:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(0,0,0,0.05);
+        outline: none;
+    }
+
+    /* Buttons */
     .btn-black {
         background-color: var(--primary);
-        color: white;
-        font-weight: bold;
+        color: #fff;
+        font-weight: 600;
         width: 100%;
+        padding: 0.75rem;
+        border: none;
+        border-radius: var(--radius);
+        transition: background 0.2s ease-in-out, transform 0.2s;
     }
 
     .btn-black:hover {
-        background-color: #000;
+        background-color: #111;
+        transform: translateY(-2px);
     }
 
-    .list-group-item {
-        cursor: pointer;
+    .btn-outline-secondary {
+        width: 100%;
+        border-radius: var(--radius);
+        border: 1px solid var(--primary);
+        color: var(--primary);
+        background: transparent;
+        font-weight: 500;
+        padding: 0.65rem 0;
+        transition: all 0.2s;
     }
 
+    .btn-outline-secondary:hover {
+        background: var(--primary);
+        color: #fff;
+        transform: translateY(-2px);
+    }
+
+    /* Service Rows */
+    .service-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        align-items: flex-end;
+        padding: 1rem;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        margin-bottom: 1rem;
+        background-color: #fefefe;
+    }
+
+    .service-row .col-md-4 {
+        flex: 1;
+        min-width: 200px;
+    }
+
+    /* Suggestions Dropdown */
     #suggestions {
         position: absolute;
         z-index: 1000;
         width: 100%;
+        max-height: 220px;
+        overflow-y: auto;
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        box-shadow: 0 4px 12px var(--shadow);
+        margin-top: 2px;
+        display: none;
     }
 
+    .list-group-item {
+        cursor: pointer;
+        padding: 0.6rem 1rem;
+        transition: background 0.2s;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .list-group-item:hover {
+        background-color: var(--hover-bg);
+    }
+
+    /* Discount & Total Inputs */
+    #discount, #total {
+        max-width: 250px;
+    }
+
+    /* Alerts */
+    .alert {
+        border-radius: var(--radius);
+        font-weight: 500;
+        padding: 0.75rem 1rem;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .service-row {
+            flex-direction: column;
+        }
+
+        .service-row .col-md-4 {
+            min-width: 100%;
+        }
+    }
+    .error {
+        color: #dc2626;
+        font-size: 0.85rem;
+        display: block;
+        margin-top: 0.25rem;
+    }
 </style>
 
 <div class="form-container">
@@ -65,37 +192,39 @@
     {% endif %}
 
     <h2>Create New Bill</h2>
-    <title>bill</title>
-    <p>paragraph</p>
-    
-    <form method="post">
+
+    <form method="post" id="billForm">
         {% csrf_token %}
 
-        <!-- Customer Name -->
         <div class="mb-3 position-relative">
             <label>Customer Name</label>
             <input required type="text" id="customer_name" name="customer_name" class="form-control" oninput="showSuggestions()" autocomplete="off">
             <div id="suggestions" class="list-group"></div>
+            <span id="error-name" class="error"></span>
         </div>
 
         <div class="mb-3">
             <label>Phone</label>
-            <input required type="text" id="customer_phone" name="customer_phone" class="form-control">
+            <input required type="tel" id="customer_phone" name="customer_phone" class="form-control" inputmode="numeric" maxlength="10">
+            <span id="error-phone" class="error"></span>
         </div>
 
         <div class="mb-3">
             <label>Email</label>
             <input type="email" id="customer_email" name="customer_email" class="form-control">
+            <span id="error-email" class="error"></span>
         </div>
 
         <div class="mb-3">
             <label>Address</label>
             <input type="text" id="customer_address" name="customer_address" class="form-control">
+            <span id="error-address" class="error"></span>
         </div>
 
         <div class="mb-3">
             <label>Date of Birth</label>
             <input type="date" id="customer_dob" name="customer_dob" class="form-control">
+            <span id="error-dob" class="error"></span>
         </div>
 
         <div class="mb-3">
@@ -106,6 +235,7 @@
                 <option value="F">Female</option>
                 <option value="O">Others</option>
             </select>
+            <span id="error-gender" class="error"></span>
         </div>
 
         <div class="mb-3">
@@ -116,9 +246,9 @@
                 <option value="women">Women</option>
                 <option value="kids">Kids</option>
             </select>
+            <span id="error-category" class="error"></span>
         </div>
 
-        <!-- Service Rows -->
         <div id="service-container">
             <div class="row mb-3 service-row">
                 <div class="col-md-4 mb-2">
@@ -126,6 +256,7 @@
                     <select required class="form-select service-select" name="service" onchange="updatePrice(this)">
                         <option value="">-- Select a service --</option>
                     </select>
+                    <span class="error error-service"></span>
                 </div>
                 <div class="col-md-4 mb-2">
                     <label>Price</label>
@@ -139,6 +270,7 @@
                         <option value="{{ s.id }}">{{ s.name }}</option>
                         {% endfor %}
                     </select>
+                    <span class="error error-staff"></span>
                 </div>
             </div>
         </div>
@@ -148,6 +280,7 @@
         <div class="mb-3">
             <label>Discount</label>
             <input type="text" id="discount" name="discount" class="form-control" value="0" oninput="calculateTotal()">
+            <span id="error-discount" class="error"></span>
         </div>
 
         <div class="mb-3">
@@ -226,7 +359,7 @@
                     div.dataset.email = customer.email;
                     div.dataset.dob= customer.dob;
                     div.dataset.gender= customer.gender;
-                    // show
+                    
 
 
 
@@ -302,6 +435,82 @@
                 suggestionBox.style.display = 'block';
             });
     }
+
+    document.getElementById("billForm").addEventListener("submit", function(e) {
+    let valid = true;
+    document.querySelectorAll(".error").forEach(span => span.textContent = "");
+
+    const name = document.getElementById("customer_name").value.trim();
+    const phone = document.getElementById("customer_phone").value.trim();
+    const email = document.getElementById("customer_email").value.trim();
+    const address = document.getElementById("customer_address").value.trim();
+    const dob = document.getElementById("customer_dob").value;
+    const gender = document.getElementById("gender").value;
+    const category = document.getElementById("category").value;
+    const discount = document.getElementById("discount").value.trim();
+
+    if (name.length < 3) {
+        document.getElementById("error-name").textContent = "Name must be at least 3 characters.";
+        valid = false;
+    }
+
+    if (!/^\d{10}$/.test(phone)) {
+        document.getElementById("error-phone").textContent = "Phone must be exactly 10 digits.";
+        valid = false;
+    }
+
+    if (email && !/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email)) {
+        document.getElementById("error-email").textContent = "Invalid email format.";
+        valid = false;
+    }
+
+    if (address.length < 5) {
+        document.getElementById("error-address").textContent = "Address must be at least 5 characters.";
+        valid = false;
+    }
+
+    if (dob) {
+        const birthDate = new Date(dob);
+        const today = new Date();
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const m = today.getMonth() - birthDate.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
+        if (age < 10) {
+        document.getElementById("error-dob").textContent = "Customer must be at least 10 years old.";
+        valid = false;
+        }
+    }
+
+    if (!gender) {
+        document.getElementById("error-gender").textContent = "Please select gender.";
+        valid = false;
+    }
+
+    if (!category) {
+        document.getElementById("error-category").textContent = "Please select category.";
+        valid = false;
+    }
+
+    if (discount && !/^\d+(\.\d{1,2})?$/.test(discount)) {
+        document.getElementById("error-discount").textContent = "Enter a valid discount.";
+        valid = false;
+    }
+
+    document.querySelectorAll(".service-row").forEach(row => {
+        const service = row.querySelector(".service-select").value;
+        const staff = row.querySelector("select[name='staff']").value;
+        if (!service) {
+        row.querySelector(".error-service").textContent = "Please select a service.";
+        valid = false;
+        }
+        if (!staff) {
+        row.querySelector(".error-staff").textContent = "Please select staff.";
+        valid = false;
+        }
+    });
+
+    if (!valid) e.preventDefault();
+    });
 
     
 </script>

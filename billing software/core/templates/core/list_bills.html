@@ -1,11 +1,147 @@
-{% extends "core/base.html" %}
+{% extends 'core/base.html' %}
 
 {% block content %}
-<div class="container mt-4">
-    <h1 class="mb-4">All Bills</h1>
+<style>
+    .container { 
+        max-width: 1000px; 
+        margin: 2rem auto; 
+        padding: 2rem; 
+        background: #fff; 
+        border-radius: 12px; 
+        box-shadow: 0 6px 16px rgba(0,0,0,0.08); 
+    }
 
-    <table class="table table-bordered table-striped">
-        <thead class="table-dark">
+    /* Page Title */
+    h1 { 
+        font-size: 2rem; 
+        font-weight: 700; 
+        text-align: center; 
+        margin-bottom: 2rem; 
+        color: #1e293b; /* slate-800 */
+        position: relative;
+    }
+    h1::after {
+        content: "";
+        display: block;
+        width: 60px;
+        height: 4px;
+        background: linear-gradient(90deg, #3b82f6, #6366f1);
+        margin: 0.5rem auto 0;
+        border-radius: 2px;
+    }
+
+    /* Filter Form */
+    form { 
+        margin-bottom: 2rem;
+        padding: 1rem;
+        background: #f9fafb;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+    form input, form select, form button {
+        padding: 10px;
+        margin: 6px 0;
+        font-size: 14px;
+        border-radius: 6px;
+        border: 1px solid #d1d5db;
+    }
+    form button {
+        background: #3b82f6;
+        color: white;
+        border: none;
+        cursor: pointer;
+    }
+    form button:hover {
+        background: #2563eb;
+    }
+
+    /* Table Styling */
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    th, td {
+        padding: 12px 14px;
+        border: 1px solid #e5e7eb;
+    }
+    th {
+        background: #f3f4f6;
+        font-weight: 600;
+        color: #374151;
+        text-align: center;
+    }
+    td {
+        color: #1f2937;
+    }
+    td.text-center {
+        text-align: center;
+    }
+
+    /* Action Buttons */
+    .actions a {
+        background: #3b82f6;
+        color: white;
+        padding: 6px 12px;
+        text-decoration: none;
+        border-radius: 6px;
+        margin-right: 4px;
+    }
+    .actions a:hover {
+        background: #2563eb;
+    }
+
+    /* Hover effect for table rows */
+    tbody tr:hover {
+        background-color: rgba(59, 130, 246, 0.05);
+    }
+
+    /* Highlight numeric columns */
+    .discount {
+        color: #16a34a; /* green */
+        font-weight: 600;
+    }
+    .total {
+        font-weight: 700;
+    }
+
+    /* Responsive */
+    @media(max-width: 768px) {
+        table th, table td {
+            font-size: 14px;
+            padding: 8px;
+        }
+        form input, form select, form button {
+            font-size: 13px;
+        }
+    }
+</style>
+
+<div class="container">
+    <h1>All Bills</h1>
+
+    <!-- Filter Form -->
+    <form method="get" class="row g-3 align-items-end">
+        <div >
+            <label class="form-label fw-bold">Month</label>
+            <select name="month" class="form-select">
+                <option value="">-- All Months --</option>
+                {% for m, name in months %}
+                    <option value="{{ m }}" {% if m == selected_month %}selected{% endif %}>{{ name }}</option>
+                {% endfor %}
+            </select>
+        
+            <label class="form-label fw-bold">Year</label>
+            <input type="number" name="year" value="{{ selected_year }}" class="form-control" placeholder="e.g. 2025">
+       
+            <button type="submit">Filter</button>
+        </div>
+    </form>
+
+    <!-- Bills Table -->
+    <table>
+        <thead>
             <tr>
                 <th>Bill ID</th>
                 <th>Customer</th>
@@ -19,30 +155,30 @@
         </thead>
         <tbody>
             {% for bill in bills %}
-                <tr>
-                    <td>{{ bill.id }}</td>
-                    <td>{{ bill.customer.name }}</td>
-                    <td>
-                        {% for item in bill.items.all %}
-                            {{ item.service.name }}{% if not forloop.last %}, {% endif %}
-                        {% empty %}
-                            -
-                        {% endfor %}
-                    </td>
-                    <td>{{ bill.date|date:"Y-m-d H:i" }}</td>
-                    <td>
-                        {% for item in bill.items.all %}
-                            {{ item.staff.name }}{% if not forloop.last %}, {% endif %}
-                        {% empty %}
-                            -
-                        {% endfor %}
-                    </td>
-                    <td>₹{{ bill.discount }}</td>
-                    <td>₹{{ bill.total }}</td>
-                    <td>
-                        <a class="btn btn-sm btn-primary" href="{% url 'invoice_preview' bill.id %}">Preview</a>
-                    </td>
-                </tr>
+            <tr>
+                <td class="text-center">{{ bill.id }}</td>
+                <td>{{ bill.customer.name }}</td>
+                <td>
+                    {% for item in bill.items.all %}
+                        {{ item.service.name }}{% if not forloop.last %}, {% endif %}
+                    {% empty %}-{% endfor %}
+                </td>
+                <td class="text-center">{{ bill.date|date:"Y-m-d H:i" }}</td>
+                <td>
+                    {% for item in bill.items.all %}
+                        {{ item.staff.name }}{% if not forloop.last %}, {% endif %}
+                    {% empty %}-{% endfor %}
+                </td>
+                <td class="text-center discount">₹{{ bill.discount|floatformat:2 }}</td>
+                <td class="text-center total">₹{{ bill.total|floatformat:2 }}</td>
+                <td class="text-center actions">
+                    <a href="{% url 'invoice_preview' bill.id %}">Preview</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="8" class="text-center text-gray-400">No bills found.</td>
+            </tr>
             {% endfor %}
         </tbody>
     </table>

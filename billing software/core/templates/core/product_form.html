@@ -1,0 +1,32 @@
+{% extends "core/base.html" %}
+{% block content %}
+<div class="container mt-4">
+  <h2>{{ title }}</h2>
+  <form method="POST">
+    {% csrf_token %}
+    <label>Name</label>
+    <input type="text" name="name" class="form-control" required>
+
+    <label>Description</label>
+    <textarea name="description" class="form-control"></textarea>
+
+    <label>Category</label>
+    <input type="text" name="category" class="form-control">
+
+    <label>Unit</label>
+    <input type="text" name="unit" class="form-control" value="pcs">
+
+    <label>Cost Price</label>
+    <input type="number" step="0.01" name="cost_price" class="form-control">
+
+    <label>Selling Price</label>
+    <input type="number" step="0.01" name="selling_price" class="form-control">
+
+    <label>Minimum Quantity</label>
+    <input type="number" name="min_quantity" class="form-control">
+
+    <button type="submit" class="btn btn-primary mt-3">Save</button>
+    <a href="{% url 'product_list' %}" class="btn btn-secondary mt-3">Cancel</a>
+  </form>
+</div>
+{% endblock %}

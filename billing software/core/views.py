@@ -1,19 +1,20 @@
-
 from django.shortcuts import render, redirect
 from .models import Customer, Service, Staff , Bill, BillItem
 from django.contrib import messages 
 from django.http import JsonResponse
+from collections import OrderedDict
 from django.shortcuts import get_object_or_404
 from django.http import HttpResponse
-
+from django.db.models import Sum
 from django.template.loader import get_template
 from django.conf import settings
 from django.urls import reverse
 import urllib.parse
 import os
 from django.utils import timezone
+from django.utils.dateparse import parse_date
 from .models import Customer
-from datetime import datetime
+from datetime import datetime,timedelta,date
 from decimal import Decimal
 from .models import SalaryRecord
 
@@ -22,33 +23,16 @@ from .models import Bill
 from django.shortcuts import render, redirect, get_object_or_404
 
 from django.utils.http import urlencode
-from .models import Customer, Bill, BillItem, Service, Staff
+
 from .models import ServiceRecord
 from .models import Staff
 from django.template.loader import render_to_string
-# import weasyprint
+from django.contrib.auth import authenticate, login,logout
 from twilio.rest import Client
+from django.contrib.auth.models import User
+from django.contrib.auth.hashers import make_password
 
-#Render Invoice as PDF
-def generate_invoice_pdf(request, bill_id):
-    bill = get_object_or_404(Bill, id=bill_id)
-    html_string = render_to_string('core/invoice_preview.html', {'bill': bill})
-    response = HttpResponse(content_type='application/pdf')
-    response['Content-Disposition'] = f'inline; filename=bill_{bill.id}.pdf'
-    weasyprint.HTML(string=html_string).write_pdf(response)
-    return response
-
-# # Send PDF via WhatsApp
-# def send_invoice_on_whatsapp(pdf_url, customer_number):
-#     client = Client(account_sid, auth_token)
-
-#     message = client.messages.create(
-#         from_='whatsapp:+14155238886',
-#         body='Here is your invoice 📄',
-#         media_url=[pdf_url],
-#         to=f'whatsapp:{customer_number}'
-#     )
-#     return message.sid
+from django.contrib.auth.decorators import login_required
 
 
 
@@ -59,6 +43,26 @@ from datetime import datetime
 
 from django.contrib.sites.shortcuts import get_current_site
 from urllib.parse import quote, urljoin
+
+def login_view(request):
+    if request.method == "POST":
+        username = request.POST.get("username")
+        password = request.POST.get("password")
+
+        user = authenticate(request, username=username, password=password)
+        if user is not None:
+            login(request, user)
+            return redirect("base")  # or your home/dashboard page
+        else:
+            messages.error(request, "Invalid username or password")
+
+    return render(request, "core/login.html")
+
+def logout_view(request):
+    logout(request)
+    return redirect("login")
+
+
 
 def create_bill(request):
     if request.method == 'POST' and request.POST.get('action') == 'save_all':
@@ -179,10 +183,132 @@ def create_bill(request):
         request.session['whatsapp_url'] = whatsapp_url
 
         return redirect('invoice_preview', bill_id=bill.id)
+        print("WHATSAPP URL:", whatsapp_url)
 
     staff = Staff.objects.all()
+
     return render(request, 'core/create_bill.html', {'staff': staff})
 
+def service_report(request):
+    # Get selected date from query params, fallback to today
+    date_str = request.GET.get("date")
+    if date_str:
+        selected_date = date_str  # string in YYYY-MM-DD
+    else:
+        selected_date = now().date()
+
+    # Fetch items for the selected date
+    items = BillItem.objects.filter(
+        bill__created_at__date=selected_date
+    ).select_related("bill", "service", "staff")
+
+    # Step 1: Total of item prices
+    items_total = items.aggregate(total=Sum("price"))["total"] or 0
+
+    # Step 2: Total discounts from bills of that date
+    discounts_total = Bill.objects.filter(
+        created_at__date=selected_date
+    ).aggregate(total=Sum("discount"))["total"] or 0
+
+    # Step 3: Apply discount
+    grand_total = items_total - discounts_total
+
+    return render(request, "core/service_report_daily.html", {
+        "items": items,
+        "grand_total": grand_total,
+        "today": selected_date,
+        "discounts_total": discounts_total,
+        "items_total": items_total,
+    })
+
+def service_report_monthly(request):
+    today = now()
+
+    # Get month and year from request (fallback to current month)
+    month = int(request.GET.get("month", today.month))
+    year = int(request.GET.get("year", today.year))
+
+    # Filter for selected month/year
+    items = BillItem.objects.filter(
+        bill__created_at__year=year,
+        bill__created_at__month=month
+    ).select_related("bill", "service", "staff")
+
+    # Step 1: Total of item prices
+    items_total = items.aggregate(total=Sum("price"))["total"] or 0
+
+    # Step 2: Total discounts from this month's bills
+    discounts_total = Bill.objects.filter(
+        created_at__year=year,
+        created_at__month=month
+    ).aggregate(total=Sum("discount"))["total"] or 0
+
+    # Step 3: Apply discount
+    grand_total = items_total - discounts_total
+
+    # Format month name for display
+    import calendar
+    month_name = calendar.month_name[month]
+
+    return render(request, "core/service_report_monthly.html", {
+        "items": items,
+        "grand_total": grand_total,
+        "month": f"{month_name} {year}",
+        "discounts_total": discounts_total,
+        "items_total": items_total,
+        "selected_month": month,
+        "selected_year": year,
+    })
+
+def service_report_weekly(request):
+    # pick date (default: today)
+    selected_date = request.GET.get("date")
+    if selected_date:
+        selected_date = datetime.strptime(selected_date, "%Y-%m-%d").date()
+    else:
+        selected_date = datetime.today().date()
+
+    # week start and end (Mon–Sun)
+    week_start = selected_date - timedelta(days=selected_date.weekday())
+    week_end = week_start + timedelta(days=6)
+
+    # fetch all items for the week
+    items = BillItem.objects.filter(bill__created_at__date__range=[week_start, week_end])
+
+    weekly_data = {}
+    items_total = 0
+    discounts_total = 0
+
+    for i in range(7):
+        day = week_start + timedelta(days=i)
+        day_items = items.filter(bill__created_at__date=day)
+
+        # calculate total for this day
+        day_total = day_items.aggregate(total=Sum("price"))["total"] or 0
+
+        weekly_data[day.strftime("%A, %Y-%m-%d")] = {
+            "services": day_items,
+            "total": day_total
+        }
+
+        items_total += day_total
+
+    # discounts (sum of all bills in that week)
+    discounts_total = Bill.objects.filter(created_at__date__range=[week_start, week_end]).aggregate(
+        total=Sum("discount")
+    )["total"] or 0
+
+    grand_total = items_total - discounts_total
+
+    return render(request, "core/service_report_weekly.html", {
+        "weekly_data": weekly_data,
+        "week_start": week_start,
+        "week_end": week_end,
+        "selected_date": selected_date,
+        "items_total": items_total,
+        "discounts_total": discounts_total,
+        "grand_total": grand_total,
+    })
 def invoice_preview(request, bill_id):
     # Get the bill and related items
     bill = get_object_or_404(Bill, id=bill_id)
@@ -413,10 +539,6 @@ def staff_autocomplete(request):
     return JsonResponse(data, safe=False)
 
 
-
-
-
-
 def service_list_by_category(request):
     category = request.GET.get('category')
     services = Service.objects.filter(category=category).values('id', 'name', 'price')
@@ -461,28 +583,6 @@ def service_delete(request, service_id):
         service.delete()
     return redirect('service_list')
 
-
-
-
-def generate_invoice(request, bill_id):
-    bill = get_object_or_404(Bill, id=bill_id)
-    bill_items = BillItem.objects.filter(bill=bill)
-    logo_path = os.path.join(settings.BASE_DIR, '/salon_billing/core/templates/static/nibhashrdnobg.png') 
-
-    template = get_template('core/invoice.html')
-    html = template.render({
-        'bill': bill,
-        'bill_items': bill_items,
-        'logo_path': logo_path
-    })
-
-    response = HttpResponse(content_type='application/pdf')
-    response['Content-Disposition'] = f'filename=invoice_{bill.id}.pdf'
-    pisa_status = pisa.CreatePDF(html, dest=response)
-    return response
-
-
-
 def invoice_pdf(request, bill_id):
     bill = get_object_or_404(Bill, id=bill_id)
     bill_items = bill.items.all()
@@ -524,26 +624,60 @@ def view_billitems(request, bill_id):
         'bill_items': bill_items
     })
 
-def list_bills(request):
-    
-    bills = Bill.objects.select_related('customer').prefetch_related('items__service', 'items__staff')
 
-    return render(request, 'core/list_bills.html', {'bills': bills})
+
+def bill_list(request):
+    # Get query params
+    year = request.GET.get("year")
+    month = request.GET.get("month")
+
+    # Base queryset (latest bills first)
+    bills = Bill.objects.all().order_by("-date")
+
+    # Apply filters
+    if year and month:
+        bills = bills.filter(date__year=year, date__month=month)
+    elif year:
+        bills = bills.filter(date__year=year)
+
+    # Month choices for dropdown
+    months = [
+        (1, "January"), (2, "February"), (3, "March"), (4, "April"),
+        (5, "May"), (6, "June"), (7, "July"), (8, "August"),
+        (9, "September"), (10, "October"), (11, "November"), (12, "December"),
+    ]
+
+    context = {
+        "bills": bills,
+        "months": months,
+        "selected_month": int(month) if month else None,
+        "selected_year": year,
+    }
+    return render(request, "core/list_bills.html", context)
+def staffs(request):
+    return render(request,'core/base.html')
 
 def staff_performance_report(request):
-    records = ServiceRecord.objects.select_related('staff', 'customer', 'service').order_by('-date')
-     
-    return render(request, 'core/report.html', {'records': records})
+    date = request.GET.get("date")
+    staff_id = request.GET.get("staff_id")
 
+    records = ServiceRecord.objects.all()
 
+    if date:
+        records = records.filter(date=date)
+    if staff_id:
+        records = records.filter(staff__id=staff_id)
 
+    staffs = Staff.objects.all()
 
-
-from decimal import Decimal
+    return render(request, "core/report.html", {
+        "records": records,
+        "date": date,
+        "staffs": staffs,
+    })
 
 
 from django.utils.timezone import now
-
 from calendar import month_name
 
 
@@ -560,56 +694,51 @@ MONTH_CHOICES = [
     (10, "October"),
     (11, "November"),
     (12, "December"),
+   
 ]
-
+from django.db.models import Q
 def monthly_salary_report(request):
     staff_list = Staff.objects.all().order_by('name')
-    records = SalaryRecord.objects.select_related('staff').all().order_by('staff__name')
+    
+    # Get selected month and year from GET parameters
+    selected_month = int(request.GET.get('month', datetime.now().month))
+    selected_year = int(request.GET.get('year', datetime.now().year))
+    
+    records = SalaryRecord.objects.select_related('staff').filter(
+        month=selected_month,
+        year=selected_year
+    )
+
+   
+   
+
+    records = records.order_by('staff__name')
 
     return render(request, 'core/monthly_salary_report.html', {
         'staff_list': staff_list,
         'records': records,
-        'months': MONTH_CHOICES, 
-        'selected_month': int(request.GET.get('month', 1)),
-        'selected_year': int(request.GET.get('year', 2025)),
+        'months': MONTH_CHOICES,
+        'selected_month': selected_month,
+        'selected_year': selected_year,
     })
 
 
+
+
 def salary_report(request):
-    staff_list = Staff.objects.all().order_by('name')
+    staff_id = request.GET.get("staff_id")  # from dropdown
+    salaries = SalaryRecord.objects.select_related("staff").all().order_by("-year", "-month")
 
-    staff_data = []
-    for staff in staff_list:
-        basic = Decimal(staff.basic_salary or 0)
+    if staff_id:
+        salaries = salaries.filter(staff_id=staff_id)
 
-        da = basic * Decimal('0.20')
-        hra = basic * Decimal('0.50')
-        special_allowance = basic * Decimal('0.25')
-        bonus = basic * Decimal('0.44')
-        pf = basic * Decimal('0.12')
-        professional_tax = Decimal('200.00')  
-        salary_advance = Decimal('0.00')      
+    staff_list = Staff.objects.all()  # for dropdown
+    return render(request, "core/salary_report.html", {
+        "salaries": salaries,
+        "staff_list": staff_list,
+        "selected_staff": staff_id
+    })
 
-        total_gross = basic + da + hra + special_allowance + bonus
-        total_deductions = pf + professional_tax + salary_advance
-        net_salary = total_gross - total_deductions
-
-        staff_data.append({
-            'name': staff.name,
-            'basic_salary': basic,
-            'da': da,
-            'hra': hra,
-            'special_allowance': special_allowance,
-            'bonus': bonus,
-            'pf': pf,
-            'professional_tax': professional_tax,
-            'salary_advance': salary_advance,
-            'total_gross': total_gross,
-            'total_deductions': total_deductions,
-            'net_salary': net_salary,
-        })
-
-    return render(request, 'core/salary_report.html', {'staff_data': staff_data})
 
 from django.utils.decorators import method_decorator
 
@@ -620,33 +749,59 @@ def save_salary_record(request):
     if request.method == "POST":
         try:
             staff_id = request.POST.get("staff_id")
-            staff = Staff.objects.get(id=staff_id)
-            unpaid_leave=int(request.POST.get("unpaid_leave", 0) or 0)
-            bonus = float(request.POST.get("bonus", 0) or 0)
-            pf = float(request.POST.get("pf", 0) or 0)
-            esi = float(request.POST.get("esi", 0) or 0)
-            advance = float(request.POST.get("advance", 0) or 0)
+            month = request.POST.get("month")
+            year = request.POST.get("year")
 
-            # Store actual DB fields, including ESI
-            SalaryRecord.objects.create(
+            if not (staff_id and month and year):
+                return JsonResponse({"success": False, "error": "Staff, month, and year are required."})
+
+            staff = Staff.objects.get(id=staff_id)
+
+            record = SalaryRecord(
                 staff=staff,
-                unpaid_leave=unpaid_leave,
-                bonus=bonus,
-                pf=pf,
-                esi=esi,
-                salary_advance=advance
+                unpaid_leave=request.POST.get("unpaid_leave", 0) or 0,
+                bonus=request.POST.get("bonus", 0) or 0,
+                pf_percent=request.POST.get("pf_percent") or None,
+                esi_percent=request.POST.get("esi_percent") or None,
+                salary_advance=request.POST.get("advance", 0) or 0,
+                month=int(month),
+                year=int(year)
             )
+            record.save()
 
             return JsonResponse({"success": True})
-
         except Exception as e:
-            return JsonResponse({"success": False, "error": str(e)})
-
-    return JsonResponse({"success": False, "error": "Invalid request"})
+            return JsonResponse({"success": False, "error": str(e)})  
 
 
 def base(request):
-    return render(request, 'core/base.html')
+    today = datetime.today()
+    
+    # Prepare last 7 days labels and revenue data
+    labels = []
+    data = []
+
+    for i in range(7):
+        date = today - timedelta(days=i)
+        daily_revenue = Bill.objects.filter(
+            created_at__date=date
+        ).aggregate(total_revenue=Sum('total'))['total_revenue'] or 0
+
+        labels.append(date.strftime('%b %d'))  # e.g., 'Sep 17'
+        data.append(daily_revenue)
+
+    labels.reverse()
+    data.reverse()
+
+    context = {
+        "total_customers": Customer.objects.count(),
+        "total_staffs": Staff.objects.count(),
+        "total_services": Service.objects.count(),
+        "total_bills": Bill.objects.count(),
+        "revenue_labels": labels,
+        "revenue_data": data,
+    }
+    return render(request, "core/base.html", context)
 
 def dashboard(request):
     return render(request, 'core/dashboard.html')
@@ -661,7 +816,7 @@ def salary_slip_preview(request, record_id):
         f"Hi {staff.name},\n"
         f"Your salary slip for {record.date.strftime('%B %Y')} is ready.\n"
         f"Net Salary: ₹{record.net_salary}\n"
-        f"View Slip: {request.build_absolute_uri(reverse('salary_slip_preview', args=[record.id]))}\n\n"
+        f"View Slip: {request.build_absolute_uri(reverse('salary_pdf', args=[record.id]))}\n\n"
         f"- HR Team"
     )
     encoded_message = urllib.parse.quote(message)
@@ -686,7 +841,7 @@ def salary_slip_send_whatsapp(request, record_id):
         f"Hi {staff.name},\n"
         f"Your salary slip for {record.date.strftime('%B %Y')} is ready.\n"
         f"Net Salary: ₹{record.net_salary}\n"
-        f"View Slip: {request.build_absolute_uri(reverse('salary_slip_preview', args=[record.id]))}\n\n"
+        f"View Slip: {request.build_absolute_uri(reverse('salary_pdf', args=[record.id]))}\n\n"
         f"- HR Team"
     )
     encoded_message = urllib.parse.quote(message)
@@ -701,3 +856,82 @@ def salary_slip_send_whatsapp(request, record_id):
 def salary_pdf(request, record_id):
     record = get_object_or_404(SalaryRecord, pk=record_id)
     return render(request, "core/salary_pdf.html", {"record": record})
+
+
+from .models import Product, StockIn, StockOut
+
+
+def product_list(request):
+    products = Product.objects.all()
+    return render(request, "core/product_list.html", {"products": products})
+
+
+def product_add(request):
+    if request.method == "POST":
+        name = request.POST.get("name")
+        description = request.POST.get("description")
+        category = request.POST.get("category")
+        unit = request.POST.get("unit")
+        cost_price = request.POST.get("cost_price") or 0
+        selling_price = request.POST.get("selling_price") or 0
+        min_quantity = request.POST.get("min_quantity") or 0
+
+        Product.objects.create(
+            name=name,
+            description=description,
+            category=category,
+            unit=unit,
+            cost_price=cost_price,
+            selling_price=selling_price,
+            min_quantity=min_quantity,
+        )
+        messages.success(request, "✅ Product added successfully")
+        return redirect("product_list")
+
+    return render(request, "core/product_form.html", {"title": "Add Product"})
+
+
+def stockin_add(request):
+    if request.method == "POST":
+        product_id = request.POST.get("product")
+        quantity = int(request.POST.get("quantity") or 0)
+        supplier = request.POST.get("supplier")
+        purchase_price = request.POST.get("purchase_price") or 0
+
+        product = Product.objects.get(id=product_id)
+        StockIn.objects.create(
+            product=product,
+            quantity=quantity,
+            date=timezone.now().date(),
+            supplier=supplier,
+            purchase_price=purchase_price,
+        )
+        messages.success(request, "📦 Stock In recorded successfully")
+        return redirect("product_list")
+
+    products = Product.objects.all()
+    return render(request, "core/stockin_form.html", {"title": "Add Stock In", "products": products})
+
+
+def stockout_add(request):
+    if request.method == "POST":
+        product_id = request.POST.get("product")
+        quantity = int(request.POST.get("quantity") or 0)
+        reason = request.POST.get("reason")
+
+        product = Product.objects.get(id=product_id)
+
+        if quantity > product.current_stock:
+            messages.error(request, " Not enough stock available!")
+        else:
+            StockOut.objects.create(
+                product=product,
+                quantity=quantity,
+                date=timezone.now().date(),
+                reason=reason,
+            )
+            messages.success(request, "📉 Stock Out recorded successfully")
+            return redirect("product_list")
+
+    products = Product.objects.all()
+    return render(request, "core/stockout_form.html", {"title": "Add Stock Out", "products": products})

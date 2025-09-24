@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Customer, Service, Staff, Bill, BillItem,ServiceRecord , SalaryRecord
+from .models import Customer, Service, Staff, Bill, BillItem,ServiceRecord , SalaryRecord ,Product , StockIn, StockOut 
 
 class CustomerAdmin(admin.ModelAdmin):
     list_display=('name','phone','email')
@@ -12,6 +12,10 @@ admin.site.register(Bill)
 admin.site.register(BillItem)
 admin.site.register(ServiceRecord)
 admin.site.register(SalaryRecord)
+
+admin.site.register(Product)
+admin.site.register(StockIn)
+admin.site.register(StockOut)
 
 
 

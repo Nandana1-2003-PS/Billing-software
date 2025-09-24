@@ -106,7 +106,7 @@
 
   <!-- Net Salary -->
   <div class="flex justify-between items-center border-t-2 border-gray-400 pt-4 mb-10">
-    <p class="font-bold text-gray-700">Net Salary (in words):</p>
+    <p class="font-bold text-gray-700">Net Salary :</p>
     <p class="text-2xl font-bold text-green-700">₹ {{ record.net_salary|floatformat:2|intcomma }}</p>
   </div>
 
@@ -115,14 +115,27 @@
     <a href="{{ whatsapp_url }}" class="btn btn-success">
       📲 Send via WhatsApp
     </a>
-    <a href="{% url 'salary_pdf' record.id %}">
+    <!-- <a href="{% url 'salary_pdf' record.id %}">
     <button onclick="window.print()" target="_blank" class="btn" style="background: #007bff;">
       🖨 Print / Save PDF
     </button>
+    </a> -->
+     <a href="{% url 'salary_pdf' record.id %}" target="_blank" 
+      onclick="printSalary(event)" class="btn" style="background:#007bff;">
+      🖨 Print / Save PDF
     </a>
 
   </div>
 
 </div>
+<script>
+  function printSalary(event) {
+    event.preventDefault();
+    const win = window.open(event.target.href, '_blank');
+    win.onload = function() {
+      win.print();
+    };
+  }
+</script>
 </center>
 {% endblock %}

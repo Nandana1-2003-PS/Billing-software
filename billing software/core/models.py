@@ -1,6 +1,25 @@
 from django.db import models
 from django.utils import timezone
 from decimal import Decimal
+from django.utils.timezone import now
+from django.contrib.auth.models import User
+
+from datetime import timedelta
+from django.contrib.auth.hashers import make_password, check_password
+
+class Log(models.Model):
+    username = models.CharField(max_length=150, unique=True)
+    password = models.CharField(max_length=256)  # hashed password
+
+    def set_password(self, raw_password):
+        self.password = make_password(raw_password)
+    
+    def check_password(self, raw_password):
+        return check_password(raw_password, self.password)
+
+    def __str__(self):
+        return self.username
+
 
 GENDER_CHOICES = [
     ('M', 'Male'),
@@ -85,51 +104,118 @@ class BillItem(models.Model):
     price = models.DecimalField(max_digits=8, decimal_places=2)
 
 
+from decimal import Decimal
+from django.db import models
+from django.utils.timezone import now
+
 class SalaryRecord(models.Model):
-    staff = models.ForeignKey('Staff', on_delete=models.CASCADE)
-    unpaid_leave= models.IntegerField("Unpaid Leave(Days)", default=0)
-    bonus = models.DecimalField("Bonus", max_digits=10, decimal_places=2, default=0)  # Editable
-    pf = models.DecimalField("PF 12%", max_digits=10, decimal_places=2, blank=True, null=True)
-    esi = models.DecimalField("ESI 1.75%", max_digits=10, decimal_places=2, blank=True, null=True, default=0)
-    
+    staff = models.ForeignKey('Staff', on_delete=models.CASCADE, help_text="Select a staff member")
+    unpaid_leave = models.IntegerField("Unpaid Leave (Days)", default=0)
+    month = models.IntegerField("Month", default=now().month)
+    year = models.IntegerField("Year", default=now().year)
+
+    bonus = models.DecimalField("Bonus", max_digits=10, decimal_places=2, default=0)
+
+    pf_percent = models.DecimalField("PF (%)", max_digits=5, decimal_places=2, blank=True, null=True,
+                                     help_text="Enter PF percentage (optional, e.g. 12 for 12%)")
+    esi_percent = models.DecimalField("ESI (%)", max_digits=5, decimal_places=2, blank=True, null=True,
+                                      help_text="Enter ESI percentage (optional, e.g. 1.75 for 1.75%)")
+
+    pf = models.DecimalField("PF Amount", max_digits=10, decimal_places=2, blank=True, null=True, editable=False)
+    esi = models.DecimalField("ESI Amount", max_digits=10, decimal_places=2, blank=True, null=True, editable=False)
+
     salary_advance = models.DecimalField("Salary Advance", max_digits=10, decimal_places=2, blank=True, null=True, default=0)
     date = models.DateField(auto_now_add=True)
 
     def save(self, *args, **kwargs):
-        """Auto-calculate PF and ESI from basic salary if not provided."""
-        if self.staff:
-            basic = Decimal(self.staff.basic_salary or 0)
-            
-            self.pf = basic * Decimal('0.12')
-            self.esi = basic * Decimal('0.0175')
+        basic = Decimal(self.staff.basic_salary or 0)
+
+        # PF calculation
+        if self.pf_percent:
+            self.pf = (basic * Decimal(self.pf_percent)) / Decimal(100)
+        else:
+            self.pf = Decimal(0)
+
+        # ESI calculation
+        if self.esi_percent:
+            self.esi = (basic * Decimal(self.esi_percent)) / Decimal(100)
+        else:
+            self.esi = Decimal(0)
+
         super().save(*args, **kwargs)
 
     @property
     def per_day_salary(self):
-        """Calculate per-day salary from basic (assuming 30 days in a month)."""
         basic = Decimal(self.staff.basic_salary or 0)
         return basic / Decimal(30)
 
     @property
     def unpaid_leave_deduction(self):
-        """Deduction for unpaid leave days."""
-        return self.per_day_salary * (self.unpaid_leave or 0)
+        return self.per_day_salary * Decimal(self.unpaid_leave or 0)
 
     @property
     def total_gross(self):
-        """Gross salary = Basic + Bonus - Unpaid leave deduction"""
         basic = Decimal(self.staff.basic_salary or 0)
-        return basic + (self.bonus or 0) - (self.unpaid_leave_deduction or 0)
+        return basic + Decimal(self.bonus or 0) - Decimal(self.unpaid_leave_deduction or 0)
 
     @property
     def total_deductions(self):
-        """Total deductions = PF + ESI + Advance  """
-        return (self.pf or 0) + (self.esi or 0) + (self.salary_advance or 0) 
+        return Decimal(self.pf or 0) + Decimal(self.esi or 0) + Decimal(self.salary_advance or 0)
 
     @property
     def net_salary(self):
-        """Net salary = Gross - Deductions"""
         return self.total_gross - self.total_deductions
 
     def __str__(self):
         return f"{self.staff.name} - {self.date}"
+
+
+
+class Product(models.Model):
+    name = models.CharField(max_length=200, unique=True)
+    description = models.TextField(blank=True, null=True)
+    category = models.CharField(max_length=100, blank=True, null=True)
+    unit = models.CharField(max_length=50, default="pcs")  # e.g., pcs, ml, g
+    cost_price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    selling_price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    min_quantity = models.PositiveIntegerField(default=0, help_text="Reorder level")
+
+    def __str__(self):
+        return self.name
+
+    @property
+    def current_stock(self):
+        stock_in = self.stockins.aggregate(models.Sum("quantity"))["quantity__sum"] or 0
+        stock_out = self.stockouts.aggregate(models.Sum("quantity"))["quantity__sum"] or 0
+        return stock_in - stock_out
+
+
+class StockIn(models.Model):
+    product = models.ForeignKey(Product, related_name="stockins", on_delete=models.CASCADE)
+    quantity = models.PositiveIntegerField()
+    date = models.DateField(default=timezone.now)
+    supplier = models.CharField(max_length=200, blank=True, null=True)
+    purchase_price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+
+    def __str__(self):
+        return f"{self.product.name} +{self.quantity} on {self.date}"
+
+
+class StockOut(models.Model):
+    product = models.ForeignKey(Product, related_name="stockouts", on_delete=models.CASCADE)
+    quantity = models.PositiveIntegerField()
+    date = models.DateField(default=timezone.now)
+    reason = models.CharField(
+        max_length=100,
+        choices=[
+            ("sale", "Sale"),
+            ("service", "Service Use"),
+            ("wastage", "Wastage"),
+            ("other", "Other"),
+        ],
+        default="sale",
+    )
+    bill_item = models.ForeignKey("BillItem", on_delete=models.SET_NULL, null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.product.name} -{self.quantity} on {self.date} ({self.reason})"

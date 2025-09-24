@@ -4,69 +4,103 @@
 
 {% block content %}
 <style>
+    body {
+        
+        background-color: #f5f7fa;
+        color: #333;
+    }
+
     .container {
-        max-width: 1100px;
+        max-width: 1200px;
         margin: 2rem auto;
-        padding: 1rem;
-        background-color: #ffffff;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        padding: 2rem;
+        background-color: #fff;
+        border-radius: 12px;
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
     }
 
     h1 {
         text-align: center;
-        margin-bottom: 1.5rem;
-        color: #333;
+        font-size: 2rem;
+        font-weight: 600;
+        margin-bottom: 2rem;
+        color: #222;
     }
 
+   
     form {
         display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 1rem;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 1.2rem;
+        margin-bottom: 2rem;
     }
 
     form input,
     form select,
     form textarea {
-        padding: 10px;
-        border: 1px solid #ccc;
-        border-radius: 4px;
+        padding: 12px 14px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
         font-size: 14px;
-        width: 100%;
+        transition: all 0.2s;
+    }
+
+    form input:focus,
+    form select:focus,
+    form textarea:focus {
+        border-color: #007bff;
+        outline: none;
+        box-shadow: 0 0 4px rgba(0, 123, 255, 0.4);
     }
 
     form label {
         grid-column: 1 / -1;
-        font-weight: bold;
-        margin-top: 0.5rem;
+        font-weight: 600;
+        font-size: 0.9rem;
+        color: #555;
+    }
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        grid-column: span 1; /* each form group takes one grid cell */
     }
 
-    form textarea {
-        grid-column: 1 / -1;
-        resize: vertical;
+    .form-group label {
+        margin-bottom: 6px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        color: #555;
     }
 
-    button {
+    /* button {
         grid-column: 1 / -1;
-        background-color: #000;
+        background: linear-gradient(135deg, #007bff, #0056d2);
         color: white;
-        padding: 10px;
+        padding: 12px;
         border: none;
-        border-radius: 4px;
-        font-weight: bold;
+        border-radius: 8px;
+        font-weight: 600;
         cursor: pointer;
+        font-size: 15px;
+        transition: 0.3s;
     }
 
+    button:hover {
+        background: linear-gradient(135deg, #0056d2, #003c99);
+    } */
+
+    
     .search-box {
-        margin: 2rem 0 1rem;
+        margin: 1.5rem 0;
         position: relative;
     }
 
     #search {
-        padding: 10px;
+        padding: 12px;
         width: 100%;
-        border: 1px solid #ccc;
-        border-radius: 4px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        font-size: 14px;
     }
 
     #suggestions {
@@ -75,248 +109,384 @@
         left: 0;
         right: 0;
         background-color: #fff;
-        border: 1px solid #ccc;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        margin-top: 4px;
         z-index: 10;
         display: none;
+        max-height: 200px;
+        overflow-y: auto;
     }
 
     #suggestions li {
         padding: 10px;
         cursor: pointer;
         list-style: none;
+        transition: background 0.2s;
     }
 
     #suggestions li:hover {
-        background-color: #f0f0f0;
+        background-color: #f8f9fa;
     }
 
+    
     .table-container {
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-        margin-top: 1.5rem;
+        margin-top: 2rem;
+        border-radius: 10px;
+        overflow-x: auto; 
+        border: 1px solid #eee;
     }
 
-    .table-container table {
-        min-width: 1200px; /* ensure scrolling if needed */
-        border-collapse: collapse;
+    table {
         width: 100%;
-        background-color: white;
+        min-width: 1200px;
+        border-collapse: collapse;
+        background: #fff;
     }
 
-    .table-container th, 
-    .table-container td {
-        padding: 12px 20px; /* more space between columns */
+    th, td {
+        padding: 14px 18px;
         text-align: left;
-        border-bottom: 1px solid #ddd;
+        font-size: 14px;
+        border-bottom: 1px solid #eee;
         white-space: nowrap;
     }
 
-    .table-container th {
-        background-color: #f8f9fa;
-        font-weight: bold;
+    th {
+        background-color: #f1f4f9;
+        font-weight: 600;
+        color: #333;
+        position: sticky; 
+        top: 0;
+        z-index: 2;
     }
 
-    .table-container tr:hover {
-        background-color: #f1f1f1;
+    tr:nth-child(even) {
+        background-color: #fafafa;
     }
 
+    tr:hover {
+        background-color: #f5f7fb;
+    }
 
+    td a {
+        color: #007bff;
+        font-weight: 500;
+        text-decoration: none;
+        transition: 0.2s;
+    }
+
+    td a:hover {
+        text-decoration: underline;
+        color: #0056d2;
+    }
+    .error {
+        color: red;
+        font-size: 0.85rem;
+        margin-top: 1px;
+        display: block;
+    }
+    input.invalid, select.invalid, textarea.invalid {
+        border-color: #dc3545;
+        box-shadow: 0 0 0 3px rgba(220,53,69,0.08);
+    }
 </style>
 
 <div class="container">
     <h1>Manage Customers</h1>
 
-    <!-- Form -->
+    
+    
     <form method="post">
         {% csrf_token %}
-        <input name="name" placeholder="Name" required>
-        <input name="phone" placeholder="Phone" required>
-        <input name="email" placeholder="Email">
-        <label for="dob">Date of Birth</label>
-        <input type="date" id="dob" name="dob" required>
-        <select name="gender" required>
-            <option value="">Select Gender</option>
-            <option value="M">Male</option>
-            <option value="F">Female</option>
-            <option value="O">Other</option>
-        </select>
-        <label for="state">State</label>
-        <select name="state" id="state" required>
-            <option value="">-- Select State --</option>
-            <option value="Andhra Pradesh">Andhra Pradesh</option>
-            <option value="Arunachal Pradesh">Arunachal Pradesh</option>
-            <option value="Assam">Assam</option>
-            <option value="Bihar">Bihar</option>
-            <option value="Chhattisgarh">Chhattisgarh</option>
-            <option value="Goa">Goa</option>
-            <option value="Gujarat">Gujarat</option>
-            <option value="Haryana">Haryana</option>
-            <option value="Himachal Pradesh">Himachal Pradesh</option>
-            <option value="Jharkhand">Jharkhand</option>
-            <option value="Karnataka">Karnataka</option>
-            <option value="Kerala">Kerala</option>
-            <option value="Madhya Pradesh">Madhya Pradesh</option>
-            <option value="Maharashtra">Maharashtra</option>
-            <option value="Manipur">Manipur</option>
-            <option value="Meghalaya">Meghalaya</option>
-            <option value="Mizoram">Mizoram</option>
-            <option value="Nagaland">Nagaland</option>
-            <option value="Odisha">Odisha</option>
-            <option value="Punjab">Punjab</option>
-            <option value="Rajasthan">Rajasthan</option>
-            <option value="Sikkim">Sikkim</option>
-            <option value="Tamil Nadu">Tamil Nadu</option>
-            <option value="Telangana">Telangana</option>
-            <option value="Tripura">Tripura</option>
-            <option value="Uttar Pradesh">Uttar Pradesh</option>
-            <option value="Uttarakhand">Uttarakhand</option>
-            <option value="West Bengal">West Bengal</option>
-            <option value="Andaman and Nicobar Islands">Andaman and Nicobar Islands</option>
-            <option value="Chandigarh">Chandigarh</option>
-            <option value="Dadra and Nagar Haveli and Daman and Diu">Dadra and Nagar Haveli and Daman and Diu</option>
-            <option value="Delhi">Delhi</option>
-            <option value="Jammu and Kashmir">Jammu and Kashmir</option>
-            <option value="Ladakh">Ladakh</option>
-            <option value="Lakshadweep">Lakshadweep</option>
-            <option value="Puducherry">Puducherry</option>
-        </select>
-        <input name="district" placeholder="District" required>
-        <input name="place" placeholder="Place" required>
-        <input name="pincode" placeholder="Pincode" required pattern="\d{6}" title="Enter a 6-digit pincode">
-        <textarea name="address" placeholder="Address" required></textarea>
-        <button type="submit">Add Customer</button>
+
+        <div class="form-group">
+            <input name="name" placeholder="Name" required>
+            <span class="error" id="error-name"></span>
+        </div>
+
+        <div class="form-group">
+            <input type="tel" name="phone" placeholder="Phone" required maxlength="10" inputmode="numeric">
+            <span class="error" id="error-phone"></span>
+        </div>
+
+        <div class="form-group">
+            <input name="email" placeholder="Email" required>
+            <span class="error" id="error-email"></span>
+        </div>
+
+        <div class="form-group">
+            <label for="dob">Date of Birth</label>
+            <input type="date" id="dob" name="dob">
+        </div>
+
+        <div class="form-group">
+            <label for="gender">Gender</label>
+            <select name="gender" required>
+                <option value="">Select Gender</option>
+                <option value="M">Male</option>
+                <option value="F">Female</option>
+                <option value="O">Other</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="state">State</label>
+            <select name="state" id="state">
+                <option value="">-- Select State --</option>
+                <option value="AP">Andhra Pradesh</option> 
+                <option value="AR">Arunachal Pradesh</option> 
+                <option value="AS">Assam</option> 
+                <option value="BR">Bihar</option> 
+                <option value="CG">Chhattisgarh</option> 
+                <option value="GA">Goa</option> 
+                <option value="GJ">Gujarat</option> 
+                <option value="HR">Haryana</option> 
+                <option value="HP">Himachal Pradesh</option> 
+                <option value="JK">Jammu & Kashmir</option> 
+                <option value="JH">Jharkhand</option> 
+                <option value="KA">Karnataka</option> 
+                <option value="KL">Kerala</option> 
+                <option value="MP">Madhya Pradesh</option> 
+                <option value="MH">Maharashtra</option> 
+                <option value="MN">Manipur</option> 
+                <option value="ML">Meghalaya</option> 
+                <option value="MZ">Mizoram</option> 
+                <option value="NL">Nagaland</option> 
+                <option value="OD">Odisha</option> 
+                <option value="PB">Punjab</option> 
+                <option value="RJ">Rajasthan</option> 
+                <option value="SK">Sikkim</option> 
+                <option value="TN">Tamil Nadu</option> 
+                <option value="TG">Telangana</option> 
+                <option value="TR">Tripura</option> 
+                <option value="UP">Uttar Pradesh</option> 
+                <option value="UT">Uttarakhand</option> 
+                <option value="WB">West Bengal</option> 
+                <option value="AN">Andaman & Nicobar</option> 
+                <option value="CH">Chandigarh</option> 
+                <option value="DN">Dadra & Nagar Haveli</option> 
+                <option value="DD">Daman & Diu</option> 
+                <option value="DL">Delhi</option> 
+                <option value="LD">Lakshadweep</option> 
+                <option value="PY">Puducherry</option> 
+                <!-- your state options -->
+            </select>
+        </div>
+
+        <div class="form-group">
+            <input name="district" placeholder="District">
+        </div>
+
+        <div class="form-group">
+            <input name="place" placeholder="Place">
+        </div>
+
+        <div class="form-group">
+            <input name="pincode" placeholder="Pincode" title="Enter a 6-digit pincode" maxlength="6" inputmode="numeric">
+            <span class="error" id="error-pincode"></span>
+        </div>
+
+        <div class="form-group" style="grid-column: 1 / -1;">
+            <textarea name="address" placeholder="Address" ></textarea>
+        </div>
+
+        <div class="form-group" style="grid-column: 1 / -1;">
+            <button type="submit" class="w-full py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">
+                ➕ Add Customer
+            </button>
+        </div>
     </form>
 
-    <!-- Search -->
+
+    
     <div class="search-box">
-        <input id="search" placeholder="Search by name..." oninput="showSuggestions()" autocomplete="off">
+        <input id="search" placeholder="🔍 Search by name or phone" oninput="filterCustomers()" autocomplete="off">
         <ul id="suggestions"></ul>
     </div>
 
-    <!-- Table view -->
-    <table class="table-container">
-        <thead>
-            <tr>
-                <th>Date</th>
-                <th>Name</th>
-                <th>Phone</th>
-                <th>Email</th>
-                <th>DOB</th>
-                <th>State</th>
-                <th>District</th>
-                <th>Place</th>
-                <th>Pincode</th>
-                <th>Address</th>
-                <th>Gender</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody id="customer-table">
-            {% for customer in customers %}
-            <tr>
-                <td data-label="Date">{{ customer.date }}</td>
-                <td data-label="Name">{{ customer.name }}</td>
-                <td data-label="Phone">{{ customer.phone }}</td>
-                <td data-label="Email">{{ customer.email|default:"-" }}</td>
-                <td data-label="DOB">{{ customer.dob }}</td>
-                <td data-label="State">{{ customer.state }}</td>
-                <td data-label="District">{{ customer.district }}</td>
-                <td data-label="Place">{{ customer.place }}</td>
-                <td data-label="Pincode">{{ customer.pincode }}</td>
-                <td data-label="Address">{{ customer.address }}</td>
-                <td data-label="Gender">
-                    {% if customer.gender == 'M' %}Male
-                    {% elif customer.gender == 'F' %}Female
-                    {% else %}Other
-                    {% endif %}
-                </td>
-                <td data-label="Actions">
-                    <a href="{% url 'customer_update' customer.id %}">Edit</a> |
-                    <a href="{% url 'customer_delete' customer.id %}">Delete</a>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Name</th>
+                    <th>Phone</th>
+                    <th>Email</th>
+                    <th>DOB</th>
+                    <th>State</th>
+                    <th>District</th>
+                    <th>Place</th>
+                    <th>Pincode</th>
+                    <th>Address</th>
+                    <th>Gender</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="customer-table">
+                {% for customer in customers %}
+                <tr>
+                    <td>{{ customer.date }}</td>
+                    <td>{{ customer.name }}</td>
+                    <td>{{ customer.phone }}</td>
+                    <td>{{ customer.email|default:"-" }}</td>
+                    <td>{{ customer.dob }}</td>
+                    <td>{{ customer.state }}</td>
+                    <td>{{ customer.district }}</td>
+                    <td>{{ customer.place }}</td>
+                    <td>{{ customer.pincode }}</td>
+                    <td>{{ customer.address }}</td>
+                    <td>
+                        {% if customer.gender == 'M' %}Male
+                        {% elif customer.gender == 'F' %}Female
+                        {% else %}Other
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{% url 'customer_update' customer.id %}">Edit</a> |
+                        <a href="{% url 'customer_delete' customer.id %}">Delete</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="12" class="no-records">No customers found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </div>
+
+
 <script>
-    function showSuggestions() {
-        const query = document.getElementById('search').value.trim();
-        const suggestionBox = document.getElementById('suggestions');
 
-        if (!query) {
-            suggestionBox.innerHTML = '';
-            suggestionBox.style.display = 'none';
-            return;
-        }
+document.addEventListener('DOMContentLoaded', function () {
+  const form = document.querySelector('form');
+  if (!form) return;
 
-        fetch(`/customers/autocomplete/?q=${encodeURIComponent(query)}`)
-            .then(response => response.json())
-            .then(data => {
-                suggestionBox.innerHTML = '';
-                if (data.length === 0) {
-                    suggestionBox.style.display = 'none';
-                    return;
-                }
-
-                data.forEach(c => {
-                    const li = document.createElement('li');
-                    li.className = 'list-group-item list-group-item-action';
-                    li.textContent = c.name;
-                    li.onclick = () => {
-                        document.getElementById('search').value = c.name;
-                        suggestionBox.innerHTML = '';
-                        suggestionBox.style.display = 'none';
-                        autocomplete();
-                    };
-                    suggestionBox.appendChild(li);
-                });
-
-                suggestionBox.style.display = 'block';
-            });
+  // fields to validate
+  const rules = [
+    {
+      name: 'name',
+      validate: v => v.trim().length >= 3,
+      message: 'Name must be at least 3 characters.'
+    },
+    {
+      name: 'phone',
+      // accept digits anywhere (will strip spaces/hyphens) and require exactly 10 digits
+      validate: v => {
+        const digits = (v || '').toString().replace(/\D/g, '');
+        return /^\d{10}$/.test(digits);
+      },
+      message: 'Phone must contain exactly 10 digits.'
+    },
+    {
+      name: 'email',
+      validate: v => {
+        if (!v) return true; // optional field
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
+      },
+      message: 'Enter a valid email address.'
+    },
+    {
+      name: 'pincode',
+      validate: v => {
+        if (!v) return true; // optional field
+        const digits = (v || '').toString().replace(/\D/g, '');
+        return /^\d{6}$/.test(digits);
+      },
+      message: 'Pincode must be 6 digits.'
     }
+  ];
 
-    document.addEventListener('click', (e) => {
-        if (!document.getElementById('search').contains(e.target)) {
-            document.getElementById('suggestions').style.display = 'none';
-        }
+  function getInput(name) {
+    return form.querySelector(`[name="${name}"]`);
+  }
+
+  function ensureErrorSpan(input) {
+    const id = 'error-' + (input.getAttribute('name') || Math.random().toString(36).slice(2));
+    let span = form.querySelector('#' + id);
+    if (!span) {
+      span = document.createElement('span');
+      span.id = id;
+      span.className = 'error';
+      input.insertAdjacentElement('afterend', span);
+    }
+    return span;
+  }
+
+  // wire up input listeners to clear errors as user types
+  rules.forEach(rule => {
+    const input = getInput(rule.name);
+    if (!input) return;
+    ensureErrorSpan(input);
+    input.addEventListener('input', () => {
+      const span = form.querySelector('#error-' + rule.name) || input.nextElementSibling;
+      if (span) span.textContent = '';
+      input.classList.remove('invalid');
+      input.removeAttribute('aria-invalid');
+    });
+  });
+
+  form.addEventListener('submit', function (e) {
+    let firstInvalid = null;
+
+    rules.forEach(rule => {
+      const input = getInput(rule.name);
+      if (!input) return;
+      // read value safely (handles type=number too)
+      let val = input.value;
+      if (val === undefined || val === null) val = '';
+
+      const ok = rule.validate(val);
+      const span = ensureErrorSpan(input);
+
+      if (!ok) {
+        span.textContent = rule.message;
+        input.classList.add('invalid');
+        input.setAttribute('aria-invalid', 'true');
+        if (!firstInvalid) firstInvalid = input;
+      } else {
+        span.textContent = '';
+        input.classList.remove('invalid');
+        input.removeAttribute('aria-invalid');
+      }
     });
 
-    function autocomplete() {
-        const query = document.getElementById('search').value.trim();
-        if (!query) return;
-
-        fetch(`/customers/autocomplete/?q=${encodeURIComponent(query)}`)
-            .then(response => response.json())
-            .then(data => {
-                const table = document.getElementById('customer-table');
-                table.innerHTML = '';
-                data.forEach(c => {
-                    const row = `<tr>
-                        <td>${c.date}</td>
-                        <td>${c.name}</td>
-                        <td>${c.phone}</td>
-                        <td>${c.email}</td>
-                        <td>${c.dob }</td>
-                        <td>${c.state }</td>
-                        <td>${c.district }</td>
-                        <td>${c.place }</td>
-                        <td>${c.pincode }</td>
-                        
-                        <td>${c.address }</td>
-                        <td>${c.gender }</td>
-                        <td>
-                            <a href="/customers/edit/${c.id}/">Edit</a> |
-                            <a href="/customers/delete/${c.id}/">Delete</a>
-                        </td>
-                    </tr>`;
-                    table.innerHTML += row;
-                });
-
-                if (data.length === 0) {
-                    table.innerHTML = `<tr><td colspan="7" class="text-center">No matching customer found.</td></tr>`;
-                }
-            });
+    if (firstInvalid) {
+      e.preventDefault();
+      firstInvalid.focus();
+      firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
+  });
+});
+
+
+
+function filterCustomers() {
+    const input = document.getElementById('search');
+    const filter = input.value.toLowerCase();
+    const table = document.getElementById('customer-table');
+    const tr = table.getElementsByTagName('tr');
+
+    for (let i = 0; i < tr.length; i++) {
+        const nameTd = tr[i].getElementsByTagName('td')[1]; // name column
+        const phoneTd = tr[i].getElementsByTagName('td')[2]; // phone column
+
+        if (nameTd || phoneTd) {
+            const nameVal = nameTd ? (nameTd.textContent || nameTd.innerText).toLowerCase() : '';
+            const phoneVal = phoneTd ? (phoneTd.textContent || phoneTd.innerText).toLowerCase() : '';
+
+            if (nameVal.includes(filter) || phoneVal.includes(filter)) {
+                tr[i].style.display = "";
+            } else {
+                tr[i].style.display = "none";
+            }
+        }
+    }
+}
 </script>
+
 {% endblock %}

@@ -1,95 +1,312 @@
 {% extends 'core/base.html' %}
+
 {% block title %}Monthly Salary Report{% endblock %}
+
 {% block content %}
-<div class="container mt-4">
+<style>
+    /* Base styles to match the requested design language */
+    :root {
+        --primary: #000;
+        --border: #d1d5db;
+        --hover-bg: #f9f9f9;
+        --radius: 8px;
+        --shadow: rgba(0,0,0,0.05);
+    }
 
-    <!-- ====== Section 1: Salary Calculation Form ====== -->
-    <h2 class="mb-4">Salary Calculator</h2>
-    <form id="salaryForm" class="row g-3 mb-5">
-        {% csrf_token %}
-        <div class="col-md-4">
-            <label class="form-label">Staff Name</label>
-            <select id="staffName" name="staff_id" class="form-select" required>
-                <option value="">-- Select Staff --</option>
-                {% for staff in staff_list %}
-                <option value="{{ staff.id }}" data-salary="{{ staff.basic_salary }}">
-                    {{ staff.name }}
-                </option>
-                {% endfor %}
-            </select>
-        </div>
+    body {
+        font-family: 'Inter', sans-serif;
+        background-color: #f9fafb;
+    }
 
-        <div class="col-md-4">
-            <label class="form-label">Basic Salary</label>
-            <input type="number" id="basicSalary" name="basic_salary" class="form-control" readonly>
-        </div>
-        <div class="col-md-4">
-            <label class="form-label">Unpaid Leave(Days)</label>
-            <input type="number"  id="unpaid_leave" name="unpaid_leave" class="form-control" value="0">
-        </div>
+    /* Container for the form and table sections */
+    .container {
+        max-width: 1200px;
+        margin-top: 2.5rem;
+        margin-bottom: 2.5rem;
+    }
 
-        <div class="col-md-4">
-            <label class="form-label">Bonus</label>
-            <input type="number" step="0.01" id="bonus" name="bonus" class="form-control" value="0">
-        </div>
+    /* Section headings with a modern underline effect */
+    h2 {
+        text-align: center;
+        color: var(--primary);
+        margin-bottom: 1.5rem;
+        font-size: 1.8rem;
+        font-weight: 700;
+        position: relative;
+    }
 
-        <div class="col-md-4">
-            <label class="form-label">PF (12%)</label>
-            <input type="number" id="pf" name="pf" class="form-control" readonly>
-        </div>
+    /* h2::after {
+        content: "";
+        display: block;
+        width: 70px;
+        height: 4px;
+        background: var(--primary);
+        margin-top: 0.5rem;
+        border-radius: 2px;
+        
+    } */
 
-        <div class="col-md-4">
-            <label class="form-label">ESI (1.75%)</label>
-            <input type="number" id="esi" name="esi" class="form-control" readonly>
-        </div>
+    /* Styling for form elements and their container */
+    /* #salaryForm {
+        background: #fff;
+        padding: 2rem;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        box-shadow: 0 4px 12px var(--shadow);
+    }
+    
+    .form-label {
+        font-weight: 500;
+        color: #374151;
+        margin-bottom: 0.3rem;
+    }
+    
+    .form-control, .form-select {
+        padding: 0.65rem 0.75rem;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        transition: all 0.2s;
+    }
 
-        <div class="col-md-4">
-            <label class="form-label">Advance</label>
-            <input type="number" step="0.01" id="advance" name="advance" class="form-control" value="0">
-        </div>
+    .form-control:focus, .form-select:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(0,0,0,0.05);
+        outline: none;
+    } */
+    #salaryForm {
+        background: #fff;
+        padding: 3rem;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        box-shadow: 0 4px 12px var(--shadow);
+        max-width: 900px;   /* centers the form */
+        margin: 0 auto;     /* horizontally center */
+    }
 
-        <div class="col-md-4">
-            <label class="form-label">Total Gross</label>
-            <input type="number" id="totalGross" name="total_gross" class="form-control" readonly>
-        </div>
+    #salaryForm .row {
+        margin-bottom: 1rem; /* spacing between rows */
+    }
 
-        <div class="col-md-4">
-            <label class="form-label">Total Deductions</label>
-            <input type="number" id="totalDeductions" name="total_deductions" class="form-control" readonly>
-        </div>
+    #salaryForm .col-md-6 {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
 
-        <div class="col-md-4">
-            <label class="form-label fw-bold">Net Salary</label>
-            <input type="number" id="netSalary" name="net_salary" class="form-control fw-bold" readonly>
-        </div>
+    #salaryForm .form-control,
+    #salaryForm .form-select {
+        height: 45px;       /* fixed height */
+        width: 100%;        /* full column width */
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+    }
+    .btn-success, .btn-primary {
+        font-weight: 600;
+        border-radius: var(--radius);
+        padding: 0.75rem 1.25rem;
+        transition: background-color 0.2s ease, transform 0.2s ease;
+    }
 
-        <!-- Save Button -->
-        <div class="col-12">
-            <button type="button" id="saveSalary" class="btn btn-success">Save Salary Record</button>
-        </div>
-    </form>
+    .btn-success {
+        background-color: #28a745;
+        border-color: #28a745;
+    }
 
-    <!-- ====== Section 2: Monthly Salary Report Table ====== -->
+    .btn-success:hover {
+        background-color: #218838;
+        border-color: #1e7e34;
+        transform: translateY(-2px);
+    }
+
+    .btn-primary {
+        background-color: var(--primary);
+        border-color: var(--primary);
+        color: #fff;
+    }
+
+    .btn-primary:hover {
+        background-color: #111;
+        border-color: #111;
+        transform: translateY(-2px);
+    }
+
+    /* Styling for the monthly report table */
+    .table-responsive {
+        margin-top: 1.5rem;
+    }
+    
+    .table {
+        background: #fff;
+        border-radius: var(--radius);
+        overflow: hidden;
+        box-shadow: 0 4px 12px var(--shadow);
+        border: 1px solid var(--border);
+    }
+
+    .table th, .table td {
+        white-space: nowrap;
+        vertical-align: middle;
+        padding: 0.75rem;
+        border: 1px solid var(--border);
+    }
+
+    .table-dark {
+        background-color: #343a40;
+        color: #fff;
+    }
+
+    .table-hover tbody tr:hover {
+        background-color: var(--hover-bg);
+    }
+    
+    .text-danger {
+        color: #dc3545 !important;
+    }
+
+    .text-success {
+        color: #28a745 !important;
+    }
+
+    .table .btn-sm {
+        padding: 0.25rem 0.65rem;
+        font-size: 0.875rem;
+        border-radius: 4px;
+    }
+    
+    .table .btn-primary {
+        background-color: #0d6efd;
+        border-color: #0d6efd;
+    }
+
+    .table .btn-primary:hover {
+        background-color: #0b5ed7;
+        border-color: #0a58ca;
+        transform: none;
+    }
+
+    /* Adjustments for smaller screens */
+    @media (max-width: 768px) {
+        .col-md-4 {
+            margin-bottom: 1rem;
+        }
+    }
+</style>
+<h2 class="mb-4">Salary Generate</h2>
+<div class="container">
+    <div class="container d-flex justify-content-center">
+        <form id="salaryForm" class="row g-4 mb-5 col-md-10">
+            {% csrf_token %}
+
+            <div class="col-md-4">
+                <label class="form-label">Staff Name</label>
+                <select id="staffName" name="staff_id" class="form-select" required>
+                    <option value="">-- Select Staff --</option>
+                    {% for staff in staff_list %}
+                    <option value="{{ staff.id }}" data-salary="{{ staff.basic_salary }}">
+                        {{ staff.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label">Basic Salary</label>
+                <input type="number" id="basicSalary" name="basic_salary" class="form-control" readonly>
+            </div>
+
+            <div class="col-md-4">
+                <label for="month" class="form-label">Month</label>
+                <select name="month" id="month" class="form-select">
+                    {% for m, name in months %}
+                    <option value="{{ m }}" {% if m == selected_month %}selected{% endif %}>{{ name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-md-4">
+                <label for="year" class="form-label">Year</label>
+                <input type="number" name="year" id="year" value="{{ selected_year }}" class="form-control" required>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Unpaid Leave(Days)</label>
+                <input type="number" id="unpaid_leave" name="unpaid_leave" class="form-control" value="0">
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Bonus</label>
+                <input type="number" step="0.01" id="bonus" name="bonus" class="form-control" value="0">
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">PF Percentage</label>
+                <input type="number" id="pf_percent" name="pf_percent" class="form-control">
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">ESI Percentage</label>
+                <input type="number" id="esi_percent" name="esi_percent" class="form-control">
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">PF</label>
+                <input type="number" id="pf" name="pf" class="form-control" readonly>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">ESI</label>
+                <input type="number" id="esi" name="esi" class="form-control" readonly>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Advance</label>
+                <input type="number" step="0.01" id="advance" name="advance" class="form-control" value="0">
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Total Gross</label>
+                <input type="number" id="totalGross" name="total_gross" class="form-control" readonly>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Total Deductions</label>
+                <input type="number" id="totalDeductions" name="total_deductions" class="form-control" readonly>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label fw-bold">Net Salary</label>
+                <input type="number" id="netSalary" name="net_salary" class="form-control fw-bold" readonly>
+            </div>
+
+            <div class="col-12 text-center mt-4">
+                <button type="button" id="saveSalary" class="btn btn-success px-4">Save Salary Record</button>
+            </div>
+        </form>
+    </div>
+
+   
+
     <h2 class="mb-4">Monthly Salary Report</h2>
-    <form method="get" class="row g-3 mb-4 align-items-end">
-        <div class="col-md-4">
-            <label for="month" class="form-label">Month</label>
-            <select name="month" id="month" class="form-select">
-                {% for m, name in months %}
-                <option value="{{ m }}" {% if m == selected_month %}selected{% endif %}>{{ name }}</option>
-                {% endfor %}
-            </select>
-        </div>
+    <div class="container d-flex justify-content-center " >
+        <form method="get" class="row g-4 mb-4 p-4 shadow-sm rounded bg-white col-md-8 ">
+            <center>
+            <div class="col-md-5">
+                <label for="month" class="form-label fw-semibold">Month</label>
+                <select name="month" id="month" class="form-select">
+                    {% for m, name in months %}
+                    <option value="{{ m }}" {% if m == selected_month %}selected{% endif %}>{{ name }}</option>
+                    {% endfor %}
+                </select>
+            
+                <label for="year" class="form-label fw-semibold">Year</label>
+                <input type="number" name="fyear" id="fyear" value="{{ selected_year }}" class="form-control">
+            
+                <button type="submit" class="btn btn-primary">Filter</button>
+            </div>
+            </center>
+        </form>
+    </div>
 
-        <div class="col-md-4">
-            <label for="year" class="form-label">Year</label>
-            <input type="number" name="year" id="year" value="{{ selected_year }}" class="form-control">
-        </div>
-
-        <div class="col-md-4">
-            <button type="submit" class="btn btn-primary w-100">Filter</button>
-        </div>
-    </form>
 
     <div class="table-responsive">
         <table class="table table-bordered table-hover align-middle" id="salaryTable">
@@ -99,8 +316,8 @@
                     <th>Basic Salary</th>
                     <th>Unpaid Leave</th>
                     <th>Bonus</th>
-                    <th>PF (12%)</th>
-                    <th>ESI (1.75%) </th>
+                    <th>PF</th>
+                    <th>ESI</th>
                     <th>Advance</th>
                     <th>Total Gross</th>
                     <th>Total Deductions</th>
@@ -123,11 +340,11 @@
                     <td class="fw-bold {% if record.net_salary < 0 %}text-danger{% else %}text-success{% endif %}">
                         {{ record.net_salary|floatformat:2 }}
                     </td>
-                    <td> <a class="btn btn-sm btn-primary" href="{% url 'salary_slip_preview' record.id%}">view</a></td>
+                    <td> <a class="btn btn-sm btn-primary" href="{% url 'salary_slip_preview' record.id%}">View</a></td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="8" class="text-center text-muted">No salary records found.</td>
+                    <td colspan="11" class="text-center text-muted py-4">No salary records found.</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -137,32 +354,29 @@
 
 <script>
 // Auto-fill and calculate
-document.getElementById("staffName").addEventListener("change", function () {
-    const selectedOption = this.options[this.selectedIndex];
-    const basicSalary = parseFloat(selectedOption.getAttribute("data-salary")) || 0;
-    document.getElementById("basicSalary").value = basicSalary.toFixed(2);
-    calculateSalary();
-});
-
-["bonus", "advance", "unpaid_leave"].forEach(id => {
-    document.getElementById(id).addEventListener("input", calculateSalary);
-});
+function toDecimal(value) {
+    const v = parseFloat(value);
+    return Number.isFinite(v) ? v : 0;
+}
 
 function calculateSalary() {
-    const basic = parseFloat(document.getElementById("basicSalary").value) || 0;
-    const bonus = parseFloat(document.getElementById("bonus").value) || 0;
-    const advance = parseFloat(document.getElementById("advance").value) || 0;
-    const unpaidLeave = parseInt(document.getElementById("unpaid_leave").value) || 0;
-    const pf = basic * 0.12;
-    const esi = basic * 0.0175;
+    const basic = toDecimal(document.getElementById("basicSalary").value);
+    const bonus = toDecimal(document.getElementById("bonus").value);
+    const advance = toDecimal(document.getElementById("advance").value);
+    const unpaidLeave = toDecimal(document.getElementById("unpaid_leave").value);
+    const pfPercent = toDecimal(document.getElementById("pf_percent").value);
+    const esiPercent = toDecimal(document.getElementById("esi_percent").value);
 
+    const pf = (basic * pfPercent) / 100.0;
+    const esi = (basic * esiPercent) / 100.0;
+    
     document.getElementById("pf").value = pf.toFixed(2);
     document.getElementById("esi").value = esi.toFixed(2);
 
     const perDaySalary = basic / 30;
     const unpaidLeaveDeduction = perDaySalary * unpaidLeave;
-    const totalGross = basic + bonus - unpaidLeaveDeduction;
     
+    const totalGross = basic + bonus - unpaidLeaveDeduction;
     const totalDeductions = pf + esi + advance;
     const netSalary = totalGross - totalDeductions;
 
@@ -171,10 +385,21 @@ function calculateSalary() {
     document.getElementById("netSalary").value = netSalary.toFixed(2);
 }
 
-// Save Salary Record
+document.getElementById("staffName").addEventListener("change", function () {
+    const selectedOption = this.options[this.selectedIndex];
+    const basicSalary = toDecimal(selectedOption.getAttribute("data-salary"));
+    document.getElementById("basicSalary").value = basicSalary.toFixed(2);
+    calculateSalary();
+});
+
+["bonus", "advance", "unpaid_leave", "pf_percent", "esi_percent"].forEach(id => {
+    document.getElementById(id).addEventListener("input", calculateSalary);
+});
+
 // Save Salary Record
 document.getElementById("saveSalary").addEventListener("click", function () {
     const formData = new FormData(document.getElementById("salaryForm"));
+    
     fetch("{% url 'save_salary_record' %}", {
         method: "POST",
         headers: {
@@ -185,7 +410,6 @@ document.getElementById("saveSalary").addEventListener("click", function () {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            // No alert, just reload table
             location.reload();
         } else {
             alert("Error: " + data.error);
@@ -194,5 +418,11 @@ document.getElementById("saveSalary").addEventListener("click", function () {
     .catch(error => console.error("Error:", error));
 });
 
+// Initial calculation on page load if a staff member is pre-selected
+window.addEventListener('load', function() {
+    if (document.getElementById("staffName").value !== "") {
+        calculateSalary();
+    }
+});
 </script>
 {% endblock %}

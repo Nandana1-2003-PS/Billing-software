@@ -1,138 +1,226 @@
-{% extends 'core/base.html' %}
+{% extends "core/base.html" %}
 {% load humanize %}
 
 {% block content %}
 <style>
-    .invoice-box {
-        font-family: 'Arial', sans-serif;
-        max-width: 900px;
-        margin: auto;
-        padding: 30px;
-        border: 1px solid #eee;
-        line-height: 1.6;
-        font-size: 14px;
-        color: #333;
+  @media print {
+    * {
+      -webkit-print-color-adjust: exact !important;
+      color-adjust: exact !important;
+      print-color-adjust: exact !important;
     }
+    body {
+      margin: 0;
+      padding: 0;
+    }
+    .a4-sheet {
+      width: 210mm;
+      min-height: 297mm;
+      margin: auto;
+      padding: 20mm;
+      border: 2px solid black;
+      box-sizing: border-box;
+      background: white;
+    }
+  }
 
-    .invoice-box table {
-        width: 100%;
-        text-align: left;
-        border-collapse: collapse;
-    }
+  .a4-sheet {
+    width: 800px;
+    min-height: 1100px;
+    margin: 20px auto;
+    padding: 30px;
+    border: 2px solid black;
+    background: white;
+    box-shadow: 0 0 10px rgba(0,0,0,0.15);
+    font-family: 'Inter', sans-serif;
+    color: #1e293b;
+  }
 
-    .invoice-box table th,
-    .invoice-box table td {
-        padding: 8px;
-        border: 1px solid #ccc;
-    }
+  .header, .customer-info, .services-table, .totals, .buttons {
+    margin-bottom: 20px;
+  }
 
-    .invoice-box h2 {
-        text-align: center;
-    }
+  .header {
+    display: flex;
+    justify-content: space-between;
+    border-bottom: 2px solid #999;
+    padding-bottom: 10px;
+  }
 
-    .btn {
-        margin-top: 20px;
-        display: inline-block;
-        padding: 10px 20px;
-        background: green;
-        color: #fff;
-        text-decoration: none;
-        border-radius: 4px;
-    }
+  .header h1 {
+    font-size: 1.8rem;
+    font-weight: 700;
+  }
+  .header h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    text-decoration: underline;
+  }
+
+  .customer-info p {
+    margin: 4px 0;
+  }
+
+  .services-table table, .totals table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .services-table th, .services-table td,
+  .totals th, .totals td {
+    border: 1px solid #999;
+    padding: 8px;
+  }
+
+  .services-table th {
+    background: #f3f4f6;
+    font-weight: 600;
+    text-align: left;
+  }
+
+  .totals td {
+    font-weight: 500;
+    text-align: center;
+  }
+
+  .totals td.total {
+    font-weight: 700;
+    font-size: 1.1rem;
+  }
+
+  .net-total {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+    padding-top: 10px;
+    border-top: 2px solid #999;
+    font-weight: 700;
+    font-size: 1.2rem;
+    color: #16a34a;
+  }
+
+  .buttons {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 30px;
+  }
+
+  .btn {
+    display: inline-block;
+    padding: 10px 20px;
+    border-radius: 6px;
+    text-decoration: none;
+    color: #fff;
+    font-weight: 600;
+  }
+  .btn-success { background-color: #16a34a; }
+  .btn-success:hover { background-color: #15803d; }
+  .btn-print { background-color: #3b82f6; }
+  .btn-print:hover { background-color: #2563eb; }
 </style>
 
-<div class="invoice-box">
-    <h2>Tax Invoice</h2>
+<center>
+<div class="a4-sheet">
 
-    <table>
-        <tr>
-            <td><strong>Customer:</strong> {{ bill.customer.name }}</td>
-            <td><strong>Phone:</strong> {{ bill.customer.phone }}</td>
-        </tr>
-        <tr>
-            <td><strong>Invoice ID:</strong> #{{ bill.id }}</td>
-            <td><strong>Date:</strong> {{ bill.created_at|date:"d M, Y" }}</td>
-        </tr>
-        <tr>
-            <td><strong>Email:</strong> {{ bill.customer.email }}</td>
-            <td><strong>Gender:</strong> {{ bill.customer.gender }}</td>
-        </tr>
-        {% if bill.customer.dob %}
-        <tr>
-            <td colspan="2"><strong>DOB:</strong> {{ bill.customer.dob|date:"d M, Y" }}</td>
-        </tr>
-        {% endif %}
-        {% if bill.customer.address %}
-        <tr>
-            <td colspan="2"><strong>Address:</strong> {{ bill.customer.address }}</td>
-        </tr>
-        {% endif %}
-    </table>
+  <!-- Header -->
+  <div class="header">
+    <div>
+      <h1>Company Name</h1>
+      <p>123 Business Street, City</p>
+      <p>Email: info@company.com</p>
+    </div>
+    <div class="text-right">
+      <h2>Invoice</h2>
+      <p>Date: {{ bill.created_at|date:"d M, Y" }}</p>
+      <p>Invoice ID: #{{ bill.id }}</p>
+    </div>
+  </div>
 
-    <br><br>
-
-    <table>
-        <thead>
-            <tr>
-                <th>#</th>
-                <th>Service</th>
-                <th>Staff</th>
-                <th>Price (₹)</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for item in bill.items.all %}
-            <tr>
-                <td>{{ forloop.counter }}</td>
-                <td>{{ item.service.name }}</td>
-                <td>{{ item.staff.name }}</td>
-                <td>{{ item.price }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-
-    <br>
-    <table class="totals">
-        <tr><td>Subtotal:</td><td>₹{{ subtotal }}</td></tr>
-        <tr><td>Discount:</td><td>₹{{ bill.discount }}</td></tr>
-        <tr><td>CGST (9%):</td><td>₹{{ cgst }}</td></tr>
-        <tr><td>SGST (9%):</td><td>₹{{ sgst }}</td></tr>
-        <tr><td><strong>Total:</strong></td><td><strong>₹{{ bill.total }}</strong></td></tr>
-    </table>
-
-
-    <!-- <table>
-        <tr>
-            <td><strong>Discount:</strong></td>
-            <td>₹{{ bill.discount }}</td>
-        </tr>
-        <tr>
-            <td><strong>Total:</strong></td>
-            <td>₹{{ bill.total }}</td>
-        </tr>
-    </table> -->
-
-    <br>
-
-    {% if request.session.whatsapp_url %}
-    <!-- <a href="{{ request.session.whatsapp_url }}" target="_blank" class="btn btn-success"> -->
-    <a href="{% url 'invoice_preview' bill.id %}?send_whatsapp=true" class="btn btn-success">
-        📤 Send on WhatsApp
-    </a>
-     <!-- Print Button -->
-    <!-- <a href="javascript:window.print()" class="btn" style="background: #007bff;">
-        🖨️ Print
-    </a> -->
-
-    <a href="{% url 'invoice_pdf' bill.id %}" target="_blank" class="btn" style="background: #007bff;">
-        🖨️ Print
-    </a>
-
-    <!-- Download PDF Button -->
-    <a href="{% url 'invoice_pdf' bill.id %}" class="btn" style="background: #6c757d;" target="_blank">
-        📄 Download PDF
-    </a>
+  <!-- Customer Info -->
+  <div class="customer-info">
+    <p><strong>Customer Name:</strong> {{ bill.customer.name }}</p>
+    <p><strong>Phone:</strong> {{ bill.customer.phone }}</p>
+    <p><strong>Email:</strong> {{ bill.customer.email }}</p>
+    {% if bill.customer.address %}
+    <p><strong>Address:</strong> {{ bill.customer.address }}</p>
     {% endif %}
+  </div>
 
+  <!-- Services Table -->
+  <div class="services-table">
+    <table>
+      <thead>
+        <tr>
+          <th>Sl. No</th>
+          <th>Service</th>
+          <th>Staff</th>
+          <th>Price (₹)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in bill.items.all %}
+        <tr>
+          <td>{{ forloop.counter }}</td>
+          <td>{{ item.service.name }}</td>
+          <td>{{ item.staff.name }}</td>
+          <td class="text-center">{{ item.price|floatformat:2|intcomma }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Totals Table -->
+  <div class="totals">
+    <table>
+      <tr>
+        <td>Discount</td>
+        <td>₹{{ bill.discount|floatformat:2|intcomma }}</td>
+      </tr>
+      <tr>
+        <td>Subtotal</td>
+        <td>₹{{ subtotal|floatformat:2|intcomma }}</td>
+      </tr>
+      <tr>
+        <td>CGST (9%)</td>
+        <td>₹{{ cgst|floatformat:2|intcomma }}</td>
+      </tr>
+      <tr>
+        <td>SGST (9%)</td>
+        <td>₹{{ sgst|floatformat:2|intcomma }}</td>
+      </tr>
+      <tr>
+        <td class="total"><strong>Total</strong></td>
+        <td class="total"><strong>₹{{ bill.total|floatformat:2|intcomma }}</strong></td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- Net Total -->
+  <div class="net-total">
+    <span>Net Payable:</span>
+    <span>₹{{ bill.total|floatformat:2|intcomma }}</span>
+  </div>
+
+  <!-- Buttons -->
+  <div class="buttons print:hidden">
+    {% if request.session.whatsapp_url %}
+    <a href="{% url 'invoice_preview' bill.id %}?send_whatsapp=true" class="btn btn-success">📤 Send on WhatsApp</a>
+    <a href="{% url 'invoice_pdf' bill.id %}" target="_blank" 
+      onclick="printInvoice(event)" class="btn" style="background:#007bff;">🖨️ Print</a>
+    {% endif %}
+  </div>
+
+</div>
+</center>
+<script>
+  function printInvoice(event) {
+    event.preventDefault();
+    const win = window.open(event.target.href, '_blank');
+    win.onload = function() {
+      win.print();
+    };
+  }
+</script>
 {% endblock %}
