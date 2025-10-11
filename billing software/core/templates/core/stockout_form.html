@@ -1,29 +1,139 @@
 {% extends "core/base.html" %}
 {% block content %}
-<div class="container mt-4">
-  <h2>{{ title }}</h2>
-  <form method="POST">
-    {% csrf_token %}
-    <label>Product</label>
-    <select name="product" class="form-control" required>
-      {% for product in products %}
-      <option value="{{ product.id }}">{{ product.name }}</option>
-      {% endfor %}
-    </select>
+<style>
+    .container { 
+        max-width: 700px; 
+        margin: 2rem auto; 
+        padding: 2rem; 
+        background: #fff; 
+        border-radius: 12px; 
+        box-shadow: 0 6px 16px rgba(0,0,0,0.08); 
+    }
 
-    <label>Quantity</label>
-    <input type="number" name="quantity" class="form-control" required>
+    /* Page Title */
+    h1, h2 { 
+        font-size: 2rem; 
+        font-weight: 700; 
+        text-align: center; 
+        margin-bottom: 2rem; 
+        color: #1e293b; 
+        position: relative;
+    }
+    h1::after, h2::after {
+        content: "";
+        display: block;
+        width: 60px;
+        height: 4px;
+        background: linear-gradient(90deg, #ef4444, #f87171); /* red gradient */
+        margin: 0.5rem auto 0;
+        border-radius: 2px;
+    }
 
-    <label>Reason</label>
-    <select name="reason" class="form-control">
-      <option value="sale">Sale</option>
-      <option value="service">Service Use</option>
-      <option value="wastage">Wastage</option>
-      <option value="other">Other</option>
-    </select>
+    /* Form Styling */
+    form {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
 
-    <button type="submit" class="btn btn-danger mt-3">Save</button>
-    <a href="{% url 'product_list' %}" class="btn btn-secondary mt-3">Cancel</a>
-  </form>
+    label {
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 0.25rem;
+    }
+
+    input, select {
+        width: 100%;
+        padding: 10px 12px;
+        font-size: 15px;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        background: #f9fafb;
+        transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    input:focus, select:focus {
+        border-color: #ef4444;
+        box-shadow: 0 0 0 3px rgba(239,68,68,0.2);
+        outline: none;
+        background: #fff;
+    }
+
+    /* Buttons */
+    .form-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 1rem;
+        margin-top: 1.5rem;
+    }
+
+    .btn {
+        display: inline-block;
+        padding: 10px 18px;
+        font-weight: 500;
+        text-decoration: none;
+        border-radius: 8px;
+        transition: all 0.2s ease-in-out;
+        border: none;
+    }
+
+    .btn-danger {
+        background-color: #dc2626;
+        color: white;
+    }
+    .btn-danger:hover {
+        background-color: #b91c1c;
+    }
+
+    .btn-secondary {
+        background-color: #6b7280;
+        color: white;
+    }
+    .btn-secondary:hover {
+        background-color: #4b5563;
+    }
+
+    @media (max-width: 600px) {
+        .container {
+            padding: 1.5rem;
+        }
+        input, select {
+            font-size: 14px;
+        }
+        .btn {
+            font-size: 14px;
+            padding: 8px 14px;
+        }
+    }
+</style>
+
+<div class="container">
+    <h2>{{ title }}</h2>
+    <form method="POST">
+        {% csrf_token %}
+
+        <label for="product">Product</label>
+        <select id="product" name="product" required>
+            {% for product in products %}
+                <option value="{{ product.id }}">{{ product.name }}</option>
+            {% endfor %}
+        </select>
+
+        <label for="quantity">Quantity</label>
+        <input type="number" id="quantity" name="quantity" required>
+
+        <label for="reason">Reason</label>
+        <select id="reason" name="reason">
+            <option value="sale">Sale</option>
+            <option value="service">Service Use</option>
+            <option value="wastage">Wastage</option>
+            <option value="other">Other</option>
+        </select>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-danger">Save</button>
+            <a href="{% url 'product_list' %}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
 </div>
 {% endblock %}

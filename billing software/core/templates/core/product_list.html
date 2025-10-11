@@ -1,34 +1,145 @@
 {% extends "core/base.html" %}
 {% block content %}
-<div class="container mt-4">
-  <h2> Product Stock</h2>
-  <a href="{% url 'product_add' %}" class="btn btn-primary mb-3">Add Product</a>
-  <a href="{% url 'stockin_add' %}" class="btn btn-success mb-3">Add Stock In</a>
-  <a href="{% url 'stockout_add' %}" class="btn btn-danger mb-3">Add Stock Out</a>
+<style>
+    .container { 
+        max-width: 1000px; 
+        margin: 2rem auto; 
+        padding: 2rem; 
+        background: #fff; 
+        border-radius: 12px; 
+        box-shadow: 0 6px 16px rgba(0,0,0,0.08); 
+    }
 
-  <table class="table table-bordered">
-    <thead class="table-dark">
-      <tr>
-        <th>Name</th>
-        <th>Category</th>
-        <th>Current Stock</th>
-        <th>Unit</th>
-        <th>Min Qty</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for product in products %}
-      <tr class="{% if product.current_stock <= product.min_quantity %}table-danger{% endif %}">
-        <td>{{ product.name }}</td>
-        <td>{{ product.category }}</td>
-        <td>{{ product.current_stock }}</td>
-        <td>{{ product.unit }}</td>
-        <td>{{ product.min_quantity }}</td>
-      </tr>
-      {% empty %}
-      <tr><td colspan="5" class="text-center">No products yet</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
+    /* Page Title */
+    h1 { 
+        font-size: 2rem; 
+        font-weight: 700; 
+        text-align: center; 
+        margin-bottom: 2rem; 
+        color: #1e293b; 
+        position: relative;
+    }
+    h1::after {
+        content: "";
+        display: block;
+        width: 60px;
+        height: 4px;
+        background: linear-gradient(90deg, #3b82f6, #6366f1);
+        margin: 0.5rem auto 0;
+        border-radius: 2px;
+    }
+
+    /* Buttons */
+    .actions {
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 1.5rem;
+    }
+    .actions a {
+        padding: 10px 16px;
+        font-weight: 500;
+        text-decoration: none;
+        color: #fff;
+        border-radius: 8px;
+        transition: all 0.2s ease-in-out;
+    }
+    .actions a:nth-child(1) {
+        background-color: #3b82f6;
+    }
+    .actions a:nth-child(1):hover {
+        background-color: #2563eb;
+    }
+    .actions a:nth-child(2) {
+        background-color: #16a34a;
+    }
+    .actions a:nth-child(2):hover {
+        background-color: #15803d;
+    }
+    .actions a:nth-child(3) {
+        background-color: #dc2626;
+    }
+    .actions a:nth-child(3):hover {
+        background-color: #b91c1c;
+    }
+
+    /* Table Styling */
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    th, td {
+        padding: 12px 14px;
+        border: 1px solid #e5e7eb;
+        text-align: center;
+    }
+    th {
+        background: #f3f4f6;
+        font-weight: 600;
+        color: #374151;
+    }
+    td {
+        color: #1f2937;
+    }
+
+    tbody tr:hover {
+        background-color: rgba(59, 130, 246, 0.05);
+    }
+
+    /* Low Stock Highlight */
+    .table-danger {
+        background-color: #fee2e2 !important;
+    }
+
+    @media(max-width: 768px) {
+        table th, table td {
+            font-size: 14px;
+            padding: 8px;
+        }
+        .actions a {
+            font-size: 14px;
+            padding: 8px 12px;
+        }
+    }
+</style>
+
+<div class="container">
+    <h1>Product Stock</h1>
+
+    <div class="actions">
+        <a href="{% url 'product_add' %}">Add Product</a>
+        <a href="{% url 'stockin_add' %}">Add Stock In</a>
+        <a href="{% url 'stockout_add' %}">Add Stock Out</a>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Category</th>
+                <th>Current Stock</th>
+                <th>Unit</th>
+                <th>Min Qty</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for product in products %}
+            <tr class="{% if product.current_stock <= product.min_quantity %}table-danger{% endif %}">
+                <td>{{ product.name }}</td>
+                <td>{{ product.category }}</td>
+                <td>{{ product.current_stock }}</td>
+                <td>{{ product.unit }}</td>
+                <td>{{ product.min_quantity }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5" class="text-center text-gray-400">No products yet</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 </div>
 {% endblock %}
